@@ -3,10 +3,14 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  SCALE_LABELS,
+  ANSWERABLE_REQUIRED,
+  QUESTION_NUMBER,
   SECTIONS,
+  TENURE_OPTIONS,
+  VISIBILITY_OPTIONS,
   type Question,
   questionsOfSection,
+  scaleLabelsFor,
 } from "@/lib/questions";
 
 export interface DepartmentOption {
@@ -14,51 +18,36 @@ export interface DepartmentOption {
   name: string;
 }
 
-const VISIBILITY_OPTIONS = [
-  {
-    value: "both",
-    title: "대표이사 + 인사책임자",
-    hint: "두 분 모두 이 응답을 열람합니다.",
-  },
-  {
-    value: "ceo_only",
-    title: "대표이사만",
-    hint: "인사책임자에게는 이 응답이 보이지 않습니다.",
-  },
-  {
-    value: "hr_only",
-    title: "인사책임자만",
-    hint: "대표이사에게는 이 응답이 보이지 않습니다.",
-  },
-] as const;
-
 interface Props {
   departments: DepartmentOption[];
-  period: string;
   periodLabel: string;
 }
 
-export default function SurveyForm({ departments, period, periodLabel }: Props) {
+export default function SurveyForm({ departments, periodLabel }: Props) {
   const router = useRouter();
   const [name, setName] = useState("");
   const [departmentId, setDepartmentId] = useState("");
-  const [visibility, setVisibility] = useState<string>("both");
-  const [scale, setScale] = useState<Record<string, number>>({});
+  const [tenure, setTenure] = useState("");
+  const [visibility, setVisibility] = useState("both");
+  const [choices, setChoices] = useState<Record<string, number>>({});
   const [texts, setTexts] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [touched, setTouched] = useState(false);
 
-  const scaleQuestions = useMemo(
-    () => SECTIONS.flatMap((s) => questionsOfSection(s.code)).filter((q) => q.type === "scale5"),
+  const requiredTexts = useMemo(
+    () => SECTIONS.flatMap((s) => questionsOfSection(s.code)).filter(
+      (q) => q.type === "text" && q.required,
+    ),
     [],
   );
-  const answeredCount = scaleQuestions.filter((q) => scale[q.code]).length;
-  const progress = Math.round((answeredCount / scaleQuestions.length) * 100);
 
-  const missingProfile = !name.trim() || !departmentId;
-  const firstUnanswered = scaleQuestions.find((q) => !scale[q.code]);
-  const canSubmit = !missingProfile && !firstUnanswered && !submitting;
+  const answered = ANSWERABLE_REQUIRED.filter((q) => choices[q.code]).length;
+  const progress = Math.round((answered / ANSWERABLE_REQUIRED.length) * 100);
+
+  const missingProfile = !name.trim() || !departmentId || !tenure;
+  const firstUnanswered = ANSWERABLE_REQUIRED.find((q) => !choices[q.code]);
+  const firstEmptyText = requiredTexts.find((q) => !(texts[q.code] ?? "").trim());
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -66,13 +55,18 @@ export default function SurveyForm({ departments, period, periodLabel }: Props) 
     setError(null);
 
     if (missingProfile) {
-      setError("성명과 소속부서를 입력해 주세요.");
-      document.getElementById("profile-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      setError("성명·소속 부서·근속기간을 모두 입력해 주세요.");
+      scrollTo("profile-section");
       return;
     }
     if (firstUnanswered) {
       setError("답변하지 않은 문항이 있습니다. 표시된 문항을 확인해 주세요.");
-      document.getElementById(`q-${firstUnanswered.code}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+      scrollTo(`q-${firstUnanswered.code}`);
+      return;
+    }
+    if (firstEmptyText) {
+      setError("1:1 면담 희망 일시를 입력해 주세요.");
+      scrollTo(`q-${firstEmptyText.code}`);
       return;
     }
 
@@ -84,8 +78,9 @@ export default function SurveyForm({ departments, period, periodLabel }: Props) 
         body: JSON.stringify({
           name: name.trim(),
           departmentId: Number(departmentId),
+          tenure,
           visibility,
-          scale,
+          choices,
           texts,
         }),
       });
@@ -105,14 +100,8 @@ export default function SurveyForm({ departments, period, periodLabel }: Props) 
   return (
     <form onSubmit={handleSubmit} className="pb-28">
       {/* ── 응답자 정보 ────────────────────────────────────── */}
-      <section id="profile-section" className="card mb-5 p-6">
-        <h2 className="text-base font-bold">응답자 정보</h2>
-        <p className="mt-1 text-sm text-muted">
-          집계와 후속 조치를 위해 실명으로 받습니다. 아래에서 이 응답을 누가 볼 수 있는지 직접
-          지정하실 수 있습니다.
-        </p>
-
-        <div className="mt-5 grid gap-4 sm:grid-cols-2">
+      <section id="profile-section" className="card mb-5 scroll-mt-4 p-6">
+        <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label className="label" htmlFor="name">
               성명 <span className="text-red-600">*</span>
@@ -122,17 +111,15 @@ export default function SurveyForm({ departments, period, periodLabel }: Props) 
               className="field"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="홍길동"
+              placeholder="이름을 입력해 주세요"
               autoComplete="name"
               maxLength={40}
             />
-            {touched && !name.trim() && (
-              <p className="mt-1.5 text-xs font-medium text-red-600">성명을 입력해 주세요.</p>
-            )}
+            {touched && !name.trim() && <FieldError>성명을 입력해 주세요.</FieldError>}
           </div>
           <div>
             <label className="label" htmlFor="department">
-              소속부서 <span className="text-red-600">*</span>
+              소속 부서 <span className="text-red-600">*</span>
             </label>
             <select
               id="department"
@@ -140,25 +127,37 @@ export default function SurveyForm({ departments, period, periodLabel }: Props) 
               value={departmentId}
               onChange={(e) => setDepartmentId(e.target.value)}
             >
-              <option value="">선택해 주세요</option>
+              <option value="">예: 기획운영팀</option>
               {departments.map((d) => (
                 <option key={d.id} value={d.id}>
                   {d.name}
                 </option>
               ))}
             </select>
-            {touched && !departmentId && (
-              <p className="mt-1.5 text-xs font-medium text-red-600">소속부서를 선택해 주세요.</p>
-            )}
+            {touched && !departmentId && <FieldError>소속 부서를 선택해 주세요.</FieldError>}
           </div>
         </div>
 
         <div className="mt-6">
-          <span className="label">이 응답의 열람 범위</span>
-          <p className="-mt-0.5 mb-2.5 text-xs text-muted">
-            선택하신 범위 밖의 사람에게는 이 응답이 표시되지 않습니다.
-          </p>
-          <div className="grid gap-2.5 sm:grid-cols-3">
+          <span className="label">
+            근속기간 <span className="text-red-600">*</span>
+          </span>
+          <div className="flex flex-wrap gap-2">
+            {TENURE_OPTIONS.map((option) => (
+              <Chip
+                key={option}
+                label={option}
+                active={tenure === option}
+                onSelect={() => setTenure(option)}
+              />
+            ))}
+          </div>
+          {touched && !tenure && <FieldError>근속기간을 선택해 주세요.</FieldError>}
+        </div>
+
+        <div className="mt-6">
+          <span className="label">이 응답의 열람 범위를 선택해 주세요</span>
+          <div className="grid gap-2.5 sm:grid-cols-2">
             {VISIBILITY_OPTIONS.map((option) => {
               const active = visibility === option.value;
               return (
@@ -186,39 +185,59 @@ export default function SurveyForm({ departments, period, periodLabel }: Props) 
               );
             })}
           </div>
+          <p className="mt-2.5 rounded-lg bg-gray-50 px-3.5 py-3 text-xs leading-relaxed text-muted">
+            인사책임자를 거치지 않고 대표이사에게 직접 전달하고 싶은 내용이 있다면{" "}
+            <b className="text-ink">「대표이사만 열람」</b>을 선택해 주세요. 선택 시 인사책임자는 이
+            응답을 볼 수 없습니다.
+          </p>
         </div>
       </section>
 
       {/* ── 문항 ──────────────────────────────────────────── */}
-      {SECTIONS.map((section, sectionIndex) => {
+      {SECTIONS.map((section) => {
         const questions = questionsOfSection(section.code);
         if (questions.length === 0) return null;
+        const showScale = questions.some((q) => q.type === "scale5");
+        const labels = scaleLabelsFor(section.code);
+
         return (
           <section key={section.code} className="card mb-5 p-6">
             <header className="mb-1 flex items-baseline gap-2.5">
-              <span className="text-xs font-bold tabular-nums text-brand">
-                {String(sectionIndex + 1).padStart(2, "0")}
-              </span>
+              <span className="text-xs font-bold tabular-nums text-brand">{section.index}</span>
               <h2 className="text-base font-bold">{section.label}</h2>
             </header>
-            <p className="mb-5 text-sm text-muted">{section.description}</p>
+            {section.note && <p className="text-sm text-muted">{section.note}</p>}
 
-            <div className="divide-y divide-line">
+            {showScale && (
+              <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1 rounded-lg bg-gray-50 px-3.5 py-2.5 text-xs text-muted">
+                {labels.map((l) => (
+                  <span key={l.value}>
+                    <b className="text-ink">{l.value}</b> {l.label}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {section.code === "interview" && <InterviewNotice />}
+
+            <div className="mt-1 divide-y divide-line">
               {questions.map((question) =>
-                question.type === "scale5" ? (
-                  <ScaleRow
-                    key={question.code}
-                    question={question}
-                    value={scale[question.code]}
-                    invalid={touched && !scale[question.code]}
-                    onChange={(v) => setScale((prev) => ({ ...prev, [question.code]: v }))}
-                  />
-                ) : (
+                question.type === "text" ? (
                   <TextRow
                     key={question.code}
                     question={question}
                     value={texts[question.code] ?? ""}
+                    invalid={touched && question.required && !(texts[question.code] ?? "").trim()}
                     onChange={(v) => setTexts((prev) => ({ ...prev, [question.code]: v }))}
+                  />
+                ) : (
+                  <OptionRow
+                    key={question.code}
+                    question={question}
+                    labels={labels}
+                    value={choices[question.code]}
+                    invalid={touched && !choices[question.code]}
+                    onChange={(v) => setChoices((prev) => ({ ...prev, [question.code]: v }))}
                   />
                 ),
               )}
@@ -239,7 +258,7 @@ export default function SurveyForm({ departments, period, periodLabel }: Props) 
             <div className="min-w-0 flex-1">
               <div className="flex items-baseline justify-between text-xs text-muted">
                 <span>
-                  {periodLabel} 진단 · 필수 문항 {answeredCount}/{scaleQuestions.length}
+                  {periodLabel} · 선택형 문항 {answered}/{ANSWERABLE_REQUIRED.length}
                 </span>
                 <span className="font-semibold tabular-nums">{progress}%</span>
               </div>
@@ -250,45 +269,103 @@ export default function SurveyForm({ departments, period, periodLabel }: Props) 
                 />
               </div>
             </div>
-            <button type="submit" className="btn-primary shrink-0" disabled={!canSubmit}>
-              {submitting ? "제출 중…" : "제출하기"}
+            <button type="submit" className="btn-primary shrink-0" disabled={submitting}>
+              {submitting ? "제출 중…" : "설문 제출하기"}
             </button>
           </div>
         </div>
       </div>
-
-      <input type="hidden" name="period" value={period} />
     </form>
   );
 }
 
-function ScaleRow({
+function scrollTo(id: string) {
+  document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+function FieldError({ children }: { children: React.ReactNode }) {
+  return <p className="mt-1.5 text-xs font-medium text-red-600">{children}</p>;
+}
+
+function Chip({
+  label,
+  active,
+  onSelect,
+}: {
+  label: string;
+  active: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <label
+      className={`cursor-pointer rounded-full border px-3.5 py-1.5 text-sm transition ${
+        active
+          ? "border-brand bg-brand font-semibold text-white"
+          : "border-line bg-white hover:border-brand/40 hover:bg-brandSoft"
+      }`}
+    >
+      <input type="radio" className="sr-only" checked={active} onChange={onSelect} />
+      {label}
+    </label>
+  );
+}
+
+function InterviewNotice() {
+  return (
+    <div className="mt-4 space-y-2.5">
+      <p className="rounded-lg bg-brandSoft px-3.5 py-3 text-sm leading-relaxed">
+        <b>🤝 1:1 면담이 진행됩니다. 가능한 일시를 적어주세요.</b>
+        <br />
+        이번 설문 내용이나 별도의 고민에 대해 회사와 직접 이야기하는 자리입니다.
+      </p>
+      <p className="rounded-lg bg-gray-50 px-3.5 py-3 text-xs leading-relaxed text-muted">
+        🔒 면담 사실과 내용은 비밀이 보장되며, 면담으로 인한 불이익은 일절 없습니다. 위에서
+        「대표이사만 열람」을 선택하신 경우 면담도 대표이사와 진행됩니다.
+      </p>
+    </div>
+  );
+}
+
+function OptionRow({
   question,
+  labels,
   value,
   invalid,
   onChange,
 }: {
   question: Question;
+  labels: { value: number; label: string }[];
   value: number | undefined;
   invalid: boolean;
   onChange: (value: number) => void;
 }) {
+  const isScale = question.type === "scale5";
+  const options = isScale
+    ? labels.map((l) => ({ value: l.value, label: "" }))
+    : (question.options ?? []);
+  const number = QUESTION_NUMBER.get(question.code);
+
   return (
     <div
       id={`q-${question.code}`}
       className={`scroll-mt-24 py-4 ${invalid ? "-mx-3 rounded-lg bg-red-50/60 px-3" : ""}`}
     >
       <p className="text-sm font-medium leading-relaxed">
+        {number && <span className="mr-1.5 tabular-nums text-muted">{number}.</span>}
         {question.prompt}
         {invalid && <span className="ml-1.5 text-xs font-bold text-red-600">미응답</span>}
       </p>
-      <div className="mt-3 grid grid-cols-5 gap-1.5">
-        {SCALE_LABELS.map((option) => {
+      <div
+        className={`mt-3 grid gap-1.5 ${
+          isScale ? "grid-cols-5" : options.length >= 5 ? "grid-cols-2 sm:grid-cols-5" : "grid-cols-3"
+        }`}
+      >
+        {options.map((option) => {
           const active = value === option.value;
           return (
             <label
               key={option.value}
-              className={`cursor-pointer rounded-lg border px-1 py-2.5 text-center transition ${
+              className={`cursor-pointer rounded-lg border px-1.5 py-2.5 text-center transition ${
                 active
                   ? "border-brand bg-brand text-white"
                   : "border-line bg-white hover:border-brand/40 hover:bg-brandSoft"
@@ -302,12 +379,11 @@ function ScaleRow({
                 checked={active}
                 onChange={() => onChange(option.value)}
               />
-              <span className="block text-sm font-bold tabular-nums">{option.value}</span>
-              <span
-                className={`mt-0.5 block text-[11px] leading-tight ${active ? "text-white/85" : "text-muted"}`}
-              >
-                {option.label}
-              </span>
+              {isScale ? (
+                <span className="block text-sm font-bold tabular-nums">{option.value}</span>
+              ) : (
+                <span className="block text-[13px] font-medium leading-tight">{option.label}</span>
+              )}
             </label>
           );
         })}
@@ -319,30 +395,54 @@ function ScaleRow({
 function TextRow({
   question,
   value,
+  invalid,
   onChange,
 }: {
   question: Question;
   value: string;
+  invalid: boolean;
   onChange: (value: string) => void;
 }) {
   const MAX = 2000;
+  const single = question.sectionCode === "interview";
+  const number = QUESTION_NUMBER.get(question.code);
+
   return (
-    <div className="py-4">
-      <label className="block text-sm font-medium leading-relaxed" htmlFor={`q-${question.code}`}>
+    <div id={`q-${question.code}`} className="scroll-mt-24 py-4">
+      <label className="block text-sm font-medium leading-relaxed" htmlFor={`input-${question.code}`}>
+        {number && <span className="mr-1.5 tabular-nums text-muted">{number}.</span>}
         {question.prompt}
-        <span className="ml-1.5 text-xs font-normal text-muted">(선택)</span>
+        {question.required ? (
+          <span className="ml-1 text-red-600">*</span>
+        ) : (
+          <span className="ml-1.5 text-xs font-normal text-muted">(선택)</span>
+        )}
       </label>
-      <textarea
-        id={`q-${question.code}`}
-        className="field mt-2.5 min-h-[104px] resize-y leading-relaxed"
-        value={value}
-        maxLength={MAX}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder="자유롭게 작성해 주세요."
-      />
-      <p className="mt-1 text-right text-xs tabular-nums text-muted">
-        {value.length}/{MAX}
-      </p>
+      {single ? (
+        <input
+          id={`input-${question.code}`}
+          className={`field mt-2 ${invalid ? "border-red-400" : ""}`}
+          value={value}
+          maxLength={200}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={question.placeholder}
+        />
+      ) : (
+        <>
+          <textarea
+            id={`input-${question.code}`}
+            className="field mt-2.5 min-h-[104px] resize-y leading-relaxed"
+            value={value}
+            maxLength={MAX}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder={question.placeholder}
+          />
+          <p className="mt-1 text-right text-xs tabular-nums text-muted">
+            {value.length}/{MAX}
+          </p>
+        </>
+      )}
+      {invalid && <FieldError>이 항목을 입력해 주세요.</FieldError>}
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { SCALE_QUESTIONS, SECTIONS, questionsOfSection } from "./questions";
+import { SCORED_QUESTIONS, SCORED_SECTION_CODES, SECTIONS, questionsOfSection } from "./questions";
 
 /** 1~5 리커트 평균을 0~100 점으로 환산합니다. 3점(보통) = 50점. */
 export function toHundred(mean: number): number {
@@ -21,16 +21,19 @@ export function computeScores(answers: Record<string, number>): ScoreResult {
   const sections: Record<string, number> = {};
 
   for (const section of SECTIONS) {
-    const scaleCodes = questionsOfSection(section.code)
-      .filter((q) => q.type === "scale5")
+    if (!SCORED_SECTION_CODES.includes(section.code)) continue;
+    const codes = questionsOfSection(section.code)
+      .filter((q) => q.scored)
       .map((q) => q.code);
-    if (scaleCodes.length === 0) continue;
-    const mean = meanOf(scaleCodes.map((c) => answers[c]).filter((v): v is number => typeof v === "number"));
+    if (codes.length === 0) continue;
+    const mean = meanOf(
+      codes.map((c) => answers[c]).filter((v): v is number => typeof v === "number"),
+    );
     if (mean !== null) sections[section.code] = toHundred(mean);
   }
 
   const allMean = meanOf(
-    SCALE_QUESTIONS.map((q) => answers[q.code]).filter((v): v is number => typeof v === "number"),
+    SCORED_QUESTIONS.map((q) => answers[q.code]).filter((v): v is number => typeof v === "number"),
   );
 
   return { overall: allMean === null ? null : toHundred(allMean), sections };

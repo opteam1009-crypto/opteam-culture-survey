@@ -1,115 +1,224 @@
-// 사내 업무환경·소통 진단 문항 정의.
+// 월간 조직 컨디션 설문 정의.
 // 이 파일이 문항의 원본(source of truth)이며, 서버 기동 시 DB로 동기화됩니다.
-// 문항을 바꿀 때는 code 를 유지해야 과거 회차와 추이 비교가 이어집니다.
+// 문항을 바꿀 때 code 를 유지하면 과거 회차와 추이 비교가 이어집니다.
 // 문구만 고치는 것은 안전하고, 의미가 달라지면 새 code 를 부여하세요.
 
-export type QuestionType = "scale5" | "text";
+export type QuestionType = "scale5" | "choice" | "text";
+
+export interface ChoiceOption {
+  value: number;
+  label: string;
+}
+
+/** 리스크 문항의 응답값별 심각도. 0=이상 없음, 1=주의, 2=경고 */
+export type Severity = 0 | 1 | 2;
 
 export interface Question {
   code: string;
   sectionCode: string;
-  prompt: string;
   type: QuestionType;
+  prompt: string;
+  /** 주관식 입력란 안내 문구 */
+  placeholder?: string;
+  /** 선택형 문항의 보기 */
+  options?: ChoiceOption[];
+  /** 0~100점 환산에 포함되는 문항인지 */
+  scored: boolean;
+  required: boolean;
+  /** 리스크 지표로 별도 집계할 문항 */
+  risk?: {
+    /** 대시보드에 쓰는 짧은 이름 */
+    label: string;
+    severity: Record<number, Severity>;
+  };
 }
 
 export interface Section {
   code: string;
+  index: string;
   label: string;
-  description: string;
+  note?: string;
+  /** 이 섹션의 척도 보기 문구. 지정하지 않으면 기본 척도를 씁니다. */
+  scaleLabels?: { value: number; label: string }[];
 }
 
-export const SECTIONS: Section[] = [
-  {
-    code: "env",
-    label: "업무 환경",
-    description: "일에 집중할 수 있는 물리적·제도적 여건",
-  },
-  {
-    code: "comm",
-    label: "소통",
-    description: "정보 공유, 부서 간 협업, 의견을 말할 수 있는 분위기",
-  },
-  {
-    code: "lead",
-    label: "리더십·피드백",
-    description: "상급자의 업무 파악, 피드백과 인정",
-  },
-  {
-    code: "load",
-    label: "업무량·워라밸",
-    description: "업무량의 적정성과 휴식 보장",
-  },
-  {
-    code: "grow",
-    label: "성장·보상",
-    description: "성장 기회와 보상·평가의 합리성",
-  },
-  {
-    code: "engage",
-    label: "조직 몰입",
-    description: "회사와 동료에 대한 신뢰, 잔류 의향",
-  },
-  {
-    code: "open",
-    label: "자유 의견",
-    description: "직접 남기고 싶은 이야기",
-  },
-];
-
-export const QUESTIONS: Question[] = [
-  // ── 업무 환경 ─────────────────────────────────────────────
-  { code: "env_1", sectionCode: "env", type: "scale5", prompt: "업무에 집중할 수 있는 물리적 환경(자리, 소음, 온도, 장비)이 갖춰져 있다." },
-  { code: "env_2", sectionCode: "env", type: "scale5", prompt: "업무에 필요한 도구와 시스템(협업툴, 소프트웨어, 장비)이 충분히 제공된다." },
-  { code: "env_3", sectionCode: "env", type: "scale5", prompt: "업무 절차와 결재 과정이 불필요하게 복잡하지 않다." },
-  { code: "env_4", sectionCode: "env", type: "scale5", prompt: "복지·휴게 제도가 실제로 사용할 수 있는 수준으로 운영된다." },
-
-  // ── 소통 ─────────────────────────────────────────────────
-  { code: "comm_1", sectionCode: "comm", type: "scale5", prompt: "부서 안에서 업무에 필요한 정보가 제때 공유된다." },
-  { code: "comm_2", sectionCode: "comm", type: "scale5", prompt: "다른 부서와 협업할 때 소통이 원활하다." },
-  { code: "comm_3", sectionCode: "comm", type: "scale5", prompt: "회사의 방향성과 주요 결정 사항이 구성원에게 충분히 공유된다." },
-  { code: "comm_4", sectionCode: "comm", type: "scale5", prompt: "회의가 목적에 맞게 효율적으로 진행된다." },
-  { code: "comm_5", sectionCode: "comm", type: "scale5", prompt: "반대 의견이나 우려를 편하게 말할 수 있는 분위기다." },
-
-  // ── 리더십·피드백 ────────────────────────────────────────
-  { code: "lead_1", sectionCode: "lead", type: "scale5", prompt: "상급자는 내가 어떤 업무를 어떤 상황에서 하고 있는지 잘 파악하고 있다." },
-  { code: "lead_2", sectionCode: "lead", type: "scale5", prompt: "업무에 대한 피드백을 구체적이고 건설적으로 받는다." },
-  { code: "lead_3", sectionCode: "lead", type: "scale5", prompt: "어려움을 이야기했을 때 실질적인 지원이나 조치가 이루어진다." },
-  { code: "lead_4", sectionCode: "lead", type: "scale5", prompt: "잘한 일에 대해 적절한 인정을 받는다." },
-
-  // ── 업무량·워라밸 ────────────────────────────────────────
-  { code: "load_1", sectionCode: "load", type: "scale5", prompt: "내가 맡은 업무량은 감당 가능한 수준이다." },
-  { code: "load_2", sectionCode: "load", type: "scale5", prompt: "팀 안에서 업무 분장이 공정하게 이루어진다." },
-  { code: "load_3", sectionCode: "load", type: "scale5", prompt: "예정에 없던 야근이나 주말 근무가 잦지 않다." },
-  { code: "load_4", sectionCode: "load", type: "scale5", prompt: "연차와 휴가를 눈치 보지 않고 사용할 수 있다." },
-
-  // ── 성장·보상 ────────────────────────────────────────────
-  { code: "grow_1", sectionCode: "grow", type: "scale5", prompt: "이 회사에서 일하며 내 전문성이 성장하고 있다고 느낀다." },
-  { code: "grow_2", sectionCode: "grow", type: "scale5", prompt: "교육이나 학습 기회가 충분히 제공된다." },
-  { code: "grow_3", sectionCode: "grow", type: "scale5", prompt: "내 기여에 비해 보상(급여·인센티브)이 합리적이라고 생각한다." },
-  { code: "grow_4", sectionCode: "grow", type: "scale5", prompt: "평가와 승진의 기준이 투명하게 공유된다." },
-
-  // ── 조직 몰입 ────────────────────────────────────────────
-  { code: "engage_1", sectionCode: "engage", type: "scale5", prompt: "나는 회사가 가려는 방향에 공감하고 있다." },
-  { code: "engage_2", sectionCode: "engage", type: "scale5", prompt: "동료들을 신뢰하며 함께 일하는 것이 즐겁다." },
-  { code: "engage_3", sectionCode: "engage", type: "scale5", prompt: "지인에게 우리 회사를 좋은 직장으로 추천할 수 있다." },
-  { code: "engage_4", sectionCode: "engage", type: "scale5", prompt: "앞으로 1년 이상 계속 근무할 의향이 있다." },
-
-  // ── 자유 의견 ────────────────────────────────────────────
-  { code: "open_good", sectionCode: "open", type: "text", prompt: "우리 회사에서 가장 잘 되고 있다고 생각하는 점은 무엇인가요?" },
-  { code: "open_fix", sectionCode: "open", type: "text", prompt: "가장 시급하게 개선이 필요하다고 생각하는 점은 무엇인가요?" },
-  { code: "open_free", sectionCode: "open", type: "text", prompt: "그 밖에 직접 전하고 싶은 이야기가 있다면 자유롭게 적어주세요." },
-];
-
-export const SCALE_LABELS = [
-  { value: 1, label: "전혀 아니다" },
-  { value: 2, label: "아닌 편이다" },
+export const DEFAULT_SCALE_LABELS = [
+  { value: 1, label: "전혀 그렇지 않다" },
+  { value: 2, label: "그렇지 않다" },
   { value: 3, label: "보통이다" },
-  { value: 4, label: "그런 편이다" },
+  { value: 4, label: "그렇다" },
   { value: 5, label: "매우 그렇다" },
 ];
 
-export const SCALE_QUESTIONS = QUESTIONS.filter((q) => q.type === "scale5");
+const RETENTION_SCALE_LABELS = [
+  { value: 1, label: "전혀 그렇지 않다" },
+  { value: 2, label: "그렇지 않다" },
+  { value: 3, label: "잘 모르겠다" },
+  { value: 4, label: "그렇다" },
+  { value: 5, label: "매우 그렇다" },
+];
+
+export const SECTIONS: Section[] = [
+  { code: "cond", index: "01", label: "업무 컨디션", note: "지난 한 달을 기준으로 답해주세요" },
+  { code: "lead", index: "02", label: "리더십 및 소통" },
+  { code: "growth", index: "03", label: "성장 및 회사 신뢰" },
+  { code: "org", index: "04", label: "조직 컨디션" },
+  {
+    code: "retention",
+    index: "05",
+    label: "향후 근무 의향",
+    scaleLabels: RETENTION_SCALE_LABELS,
+  },
+  { code: "risk", index: "06", label: "조직 리스크 체크" },
+  { code: "voice", index: "07", label: "자유 의견", note: "사소한 내용도 좋습니다" },
+  { code: "ceo", index: "08", label: "대표에게 하고 싶은 말", note: "작성하지 않아도 됩니다" },
+  { code: "interview", index: "09", label: "1:1 면담 일정", note: "전 직원 필수" },
+];
+
+/** 점수로 환산하는 영역. 리스크·자유의견·면담은 점수에 들어가지 않습니다. */
+export const SCORED_SECTION_CODES = ["cond", "lead", "growth", "org", "retention"];
+
+const YES_NO_3 = (middle: string, high: string): ChoiceOption[] => [
+  { value: 1, label: "없다" },
+  { value: 2, label: middle },
+  { value: 3, label: high },
+];
+
+const RISK_3: Record<number, Severity> = { 1: 0, 2: 1, 3: 2 };
+
+export const QUESTIONS: Question[] = [
+  // ── 01 업무 컨디션 ────────────────────────────────────────
+  { code: "cond_1", sectionCode: "cond", type: "scale5", scored: true, required: true,
+    prompt: "지난 달 업무량은 감당 가능한 수준이었다." },
+  { code: "cond_2", sectionCode: "cond", type: "scale5", scored: true, required: true,
+    prompt: "내가 해야 할 업무의 우선순위와 목표가 명확했다." },
+  { code: "cond_3", sectionCode: "cond", type: "scale5", scored: true, required: true,
+    prompt: "불필요한 보고·회의·반복 업무 때문에 시간을 낭비하지 않았다." },
+  { code: "cond_4", sectionCode: "cond", type: "scale5", scored: true, required: true,
+    prompt: "지난 달 업무를 통해 성취감이나 보람을 느꼈다." },
+
+  // ── 02 리더십 및 소통 ─────────────────────────────────────
+  { code: "lead_1", sectionCode: "lead", type: "scale5", scored: true, required: true,
+    prompt: "직속 상사(팀장·리더)는 업무의 우선순위와 기대 수준을 명확하게 전달한다." },
+  { code: "lead_2", sectionCode: "lead", type: "scale5", scored: true, required: true,
+    prompt: "업무에 필요한 정보가 적절한 시점에 공유된다." },
+  { code: "lead_3", sectionCode: "lead", type: "scale5", scored: true, required: true,
+    prompt: "업무상 문제나 반대 의견을 부담 없이 이야기할 수 있다." },
+  { code: "lead_4", sectionCode: "lead", type: "scale5", scored: true, required: true,
+    prompt: "업무 배분과 의사결정이 합리적이고 공정하다고 느낀다." },
+
+  // ── 03 성장 및 회사 신뢰 ──────────────────────────────────
+  { code: "growth_1", sectionCode: "growth", type: "scale5", scored: true, required: true,
+    prompt: "나는 이 회사에서 업무적으로 성장하고 있다고 느낀다." },
+  { code: "growth_2", sectionCode: "growth", type: "scale5", scored: true, required: true,
+    prompt: "회사가 현재 어떤 방향으로 가고 있는지 이해하고 있다." },
+  { code: "growth_3", sectionCode: "growth", type: "scale5", scored: true, required: true,
+    prompt: "회사의 중요한 의사결정과 경영 방향을 신뢰한다." },
+
+  // ── 04 조직 컨디션 ────────────────────────────────────────
+  { code: "org_1", sectionCode: "org", type: "scale5", scored: true, required: true,
+    prompt: "지난 달 스트레스와 피로는 감당할 수 있는 수준이었다." },
+  { code: "org_2", sectionCode: "org", type: "scale5", scored: true, required: true,
+    prompt: "회사에서 존중받으며 일하고 있다고 느낀다." },
+  { code: "org_3", sectionCode: "org", type: "scale5", scored: true, required: true,
+    prompt: "전반적으로 지난 달 회사생활에 만족한다." },
+
+  // ── 05 향후 근무 의향 ─────────────────────────────────────
+  { code: "retention_1", sectionCode: "retention", type: "scale5", scored: true, required: true,
+    prompt: "6개월 후에도 이 회사에서 계속 일하고 싶다." },
+  {
+    code: "retention_2",
+    sectionCode: "retention",
+    type: "choice",
+    scored: false,
+    required: true,
+    prompt: "지난 한 달 동안 이직이나 퇴사를 진지하게 생각한 적이 있습니까?",
+    options: [
+      { value: 1, label: "전혀 없다" },
+      { value: 2, label: "한두 번 생각했다" },
+      { value: 3, label: "가끔 생각했다" },
+      { value: 4, label: "자주 생각했다" },
+      { value: 5, label: "실제로 알아보고 있다" },
+    ],
+    // 이직 검토는 만족도 평균에 섞으면 묻힙니다. 별도 이탈 신호로 셉니다.
+    risk: { label: "이직 검토", severity: { 1: 0, 2: 0, 3: 1, 4: 2, 5: 2 } },
+  },
+
+  // ── 06 조직 리스크 체크 ───────────────────────────────────
+  {
+    code: "risk_1", sectionCode: "risk", type: "choice", scored: false, required: true,
+    prompt: "지난 한 달 동안 업무 또는 인간관계 때문에 혼자 감당하기 어렵다고 느낀 적이 있습니까?",
+    options: YES_NO_3("약간 있다", "자주 있다"),
+    risk: { label: "번아웃 신호", severity: RISK_3 },
+  },
+  {
+    code: "risk_2", sectionCode: "risk", type: "choice", scored: false, required: true,
+    prompt: "지난 한 달 동안 부당하다고 느낀 지시·대우·업무 요구를 받은 적이 있습니까?",
+    options: YES_NO_3("약간 있다", "있다"),
+    risk: { label: "부당 대우", severity: RISK_3 },
+  },
+  {
+    code: "risk_3", sectionCode: "risk", type: "choice", scored: false, required: true,
+    prompt: "회사나 상사에게 말하지 못하고 있는 업무상 고민이나 불편사항이 있습니까?",
+    options: YES_NO_3("조금 있다", "있다"),
+    risk: { label: "말 못한 고민", severity: RISK_3 },
+  },
+
+  // ── 07 자유 의견 ──────────────────────────────────────────
+  { code: "voice_keep", sectionCode: "voice", type: "text", scored: false, required: false,
+    prompt: "지난 달 회사에서 계속 유지했으면 하는 것 한 가지가 있다면 무엇인가요?",
+    placeholder: "자유롭게 작성해주세요." },
+  { code: "voice_improve", sectionCode: "voice", type: "text", scored: false, required: false,
+    prompt: "회사가 앞으로 딱 한 가지만 개선한다면 가장 먼저 바꿨으면 하는 것은 무엇인가요?",
+    placeholder: "업무방식, 조직문화, 시스템, 소통, 복지, 근무환경 등 무엇이든 좋습니다." },
+  { code: "voice_idea", sectionCode: "voice", type: "text", scored: false, required: false,
+    prompt: "회사의 매출·업무효율·고객만족을 높일 수 있는 아이디어가 있다면 적어주세요.",
+    placeholder: "사소한 아이디어도 좋습니다." },
+
+  // ── 08 대표에게 하고 싶은 말 ──────────────────────────────
+  { code: "ceo_message", sectionCode: "ceo", type: "text", scored: false, required: false,
+    prompt: "대표 또는 경영진에게 전달하고 싶은 이야기가 있다면 자유롭게 적어주세요.",
+    placeholder: "이 항목은 선택사항입니다." },
+
+  // ── 09 1:1 면담 일정 ──────────────────────────────────────
+  { code: "interview_first", sectionCode: "interview", type: "text", scored: false, required: true,
+    prompt: "1순위 일시", placeholder: "예: 8월 12일(수) 14시 이후" },
+  { code: "interview_second", sectionCode: "interview", type: "text", scored: false, required: true,
+    prompt: "2순위 일시", placeholder: "예: 8월 14일(금) 오전" },
+  { code: "interview_topic", sectionCode: "interview", type: "text", scored: false, required: false,
+    prompt: "면담 주제", placeholder: "간단히 적어주세요 (선택)" },
+];
+
+export const TENURE_OPTIONS = [
+  "3개월 미만",
+  "3~6개월",
+  "6개월~1년",
+  "1~3년",
+  "3년 이상",
+];
+
+export const VISIBILITY_OPTIONS = [
+  {
+    value: "both",
+    title: "대표이사 + 인사책임자",
+    hint: "두 분 모두 이 응답을 열람합니다.",
+  },
+  {
+    value: "ceo_only",
+    title: "🔒 대표이사만 열람",
+    hint: "인사책임자는 이 응답을 볼 수 없습니다.",
+  },
+];
+
+export const SCORED_QUESTIONS = QUESTIONS.filter((q) => q.scored);
+export const CHOICE_QUESTIONS = QUESTIONS.filter((q) => q.type === "choice");
 export const TEXT_QUESTIONS = QUESTIONS.filter((q) => q.type === "text");
+export const RISK_QUESTIONS = QUESTIONS.filter((q) => q.risk);
+export const REQUIRED_QUESTIONS = QUESTIONS.filter((q) => q.required);
+/** 척도·선택형 등 보기를 고르는 필수 문항 (진행률 계산 기준) */
+export const ANSWERABLE_REQUIRED = QUESTIONS.filter(
+  (q) => q.required && (q.type === "scale5" || q.type === "choice"),
+);
 
 export const QUESTION_BY_CODE = new Map(QUESTIONS.map((q) => [q.code, q]));
 export const SECTION_BY_CODE = new Map(SECTIONS.map((s) => [s.code, s]));
@@ -117,3 +226,18 @@ export const SECTION_BY_CODE = new Map(SECTIONS.map((s) => [s.code, s]));
 export function questionsOfSection(sectionCode: string): Question[] {
   return QUESTIONS.filter((q) => q.sectionCode === sectionCode);
 }
+
+export function scaleLabelsFor(sectionCode: string) {
+  return SECTION_BY_CODE.get(sectionCode)?.scaleLabels ?? DEFAULT_SCALE_LABELS;
+}
+
+/** 응답값의 심각도를 구합니다. 리스크 문항이 아니면 0. */
+export function severityOf(code: string, value: number | null | undefined): Severity {
+  if (value === null || value === undefined) return 0;
+  return QUESTION_BY_CODE.get(code)?.risk?.severity[value] ?? 0;
+}
+
+/** 설문 전체 문항 번호 (자유의견까지 이어지는 연속 번호) */
+export const QUESTION_NUMBER = new Map(
+  QUESTIONS.filter((q) => q.sectionCode !== "interview").map((q, i) => [q.code, i + 1]),
+);

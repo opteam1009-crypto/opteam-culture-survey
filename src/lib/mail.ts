@@ -7,6 +7,7 @@ export interface NotificationInput {
   period: string;
   visibility: string;
   overallScore: number | null;
+  riskLevel: number;
   submittedAt: Date;
   dashboardUrl: string;
 }
@@ -29,8 +30,16 @@ function buildBody(input: NotificationInput): { subject: string; text: string; h
   const when = input.submittedAt.toLocaleString("ko-KR", { timeZone: "Asia/Seoul" });
   const score = input.overallScore === null ? "—" : `${input.overallScore.toFixed(1)}점 / 100점`;
   const scope = VISIBILITY_LABEL[input.visibility] ?? input.visibility;
+  const risk =
+    input.riskLevel >= 2
+      ? "확인 필요 — 리스크 문항에 '있다/자주 있다' 응답이 있습니다"
+      : input.riskLevel === 1
+        ? "참고 — 리스크 문항에 '약간 있다' 응답이 있습니다"
+        : "특이사항 없음";
 
-  const subject = `[사내 설문] ${input.department} ${input.name}님이 ${input.period} 설문을 제출했습니다`;
+  const subject =
+    (input.riskLevel >= 2 ? "[확인 필요] " : "") +
+    `[조직 컨디션] ${input.department} ${input.name}님이 ${input.period} 설문을 제출했습니다`;
 
   const text = [
     `${input.period} 사내 업무환경·소통 진단 설문이 제출되었습니다.`,
@@ -40,6 +49,7 @@ function buildBody(input: NotificationInput): { subject: string; text: string; h
     `제출시각 : ${when}`,
     `종합점수 : ${score}`,
     `열람범위 : ${scope}`,
+    `리스크   : ${risk}`,
     "",
     `대시보드에서 확인: ${input.dashboardUrl}`,
     "",
@@ -59,6 +69,7 @@ ${row("소속부서", escapeHtml(input.department))}
 ${row("제출시각", escapeHtml(when))}
 ${row("종합점수", escapeHtml(score))}
 ${row("열람범위", escapeHtml(scope))}
+${row("리스크", escapeHtml(risk))}
 </table>
 </td></tr>
 <tr><td style="padding:8px 24px 24px">

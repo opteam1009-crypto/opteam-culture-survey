@@ -1,6 +1,13 @@
 import { ensureSchema, sql } from "@/lib/db";
 import { VISIBLE_TO, type Role } from "@/lib/auth";
-import { SCALE_QUESTIONS, SECTIONS } from "@/lib/questions";
+import {
+  QUESTION_BY_CODE,
+  RISK_QUESTIONS,
+  SCORED_QUESTIONS,
+  SCORED_SECTION_CODES,
+  SECTIONS,
+  severityOf,
+} from "@/lib/questions";
 import { meanOf, toHundred } from "@/lib/score";
 
 export interface ResponseRow {
@@ -10,6 +17,8 @@ export interface ResponseRow {
   department_id: number | null;
   department_name: string;
   visibility: string;
+  tenure: string | null;
+  risk_level: number;
   overall_score: number | null;
   section_scores: Record<string, number>;
   submitted_at: string;
@@ -32,7 +41,7 @@ export async function loadVisibleResponses(role: Role): Promise<ResponseRow[]> {
   await ensureSchema();
   const rows = (await sql()`
     select id, period, respondent_name, department_id, department_name, visibility,
-           overall_score, section_scores, submitted_at
+           tenure, risk_level, overall_score, section_scores, submitted_at
       from survey_responses
      where visibility = any(${VISIBLE_TO[role]})
      order by submitted_at desc
@@ -40,6 +49,7 @@ export async function loadVisibleResponses(role: Role): Promise<ResponseRow[]> {
 
   return rows.map((row) => ({
     ...row,
+    risk_level: Number(row.risk_level ?? 0),
     overall_score: row.overall_score === null ? null : Number(row.overall_score),
     section_scores: normalizeSectionScores(row.section_scores),
   }));
@@ -92,7 +102,7 @@ export function summarizeByPeriod(rows: ResponseRow[]): PeriodSummary[] {
       count: group.length,
       overall: roundOrNull(meanOf(group.map((r) => r.overall_score ?? NaN))),
       sections: Object.fromEntries(
-        SECTIONS.filter((s) => s.code !== "open").map((section) => [
+        SECTIONS.filter((s) => SCORED_SECTION_CODES.includes(s.code)).map((section) => [
           section.code,
           roundOrNull(meanOf(group.map((r) => r.section_scores[section.code] ?? NaN))),
         ]),
@@ -121,7 +131,7 @@ export function summarizeByDepartment(rows: ResponseRow[]): DepartmentSummary[] 
       count: group.length,
       overall: roundOrNull(meanOf(group.map((r) => r.overall_score ?? NaN))),
       sections: Object.fromEntries(
-        SECTIONS.filter((s) => s.code !== "open").map((section) => [
+        SECTIONS.filter((s) => SCORED_SECTION_CODES.includes(s.code)).map((section) => [
           section.code,
           roundOrNull(meanOf(group.map((r) => r.section_scores[section.code] ?? NaN))),
         ]),
@@ -131,7 +141,7 @@ export function summarizeByDepartment(rows: ResponseRow[]): DepartmentSummary[] 
 }
 
 export function summarizeSections(rows: ResponseRow[]): { code: string; label: string; score: number | null }[] {
-  return SECTIONS.filter((s) => s.code !== "open").map((section) => ({
+  return SECTIONS.filter((s) => SCORED_SECTION_CODES.includes(s.code)).map((section) => ({
     code: section.code,
     label: section.label,
     score: roundOrNull(meanOf(rows.map((r) => r.section_scores[section.code] ?? NaN))),
@@ -164,7 +174,7 @@ export async function loadQuestionAverages(
 
   const byCode = new Map(rows.map((r) => [r.question_code, r]));
 
-  return SCALE_QUESTIONS.map((question) => {
+  return SCORED_QUESTIONS.map((question) => {
     const hit = byCode.get(question.code);
     return {
       code: question.code,
@@ -231,7 +241,7 @@ export async function loadResponseDetail(
   await ensureSchema();
   const rows = (await sql()`
     select id, period, respondent_name, department_id, department_name, visibility,
-           overall_score, section_scores, submitted_at
+           tenure, risk_level, overall_score, section_scores, submitted_at
       from survey_responses
      where id = ${id}::uuid
        and visibility = any(${VISIBLE_TO[role]})
@@ -256,4 +266,184 @@ export async function loadResponseDetail(
 
 function roundOrNull(value: number | null): number | null {
   return value === null ? null : Math.round(value * 10) / 10;
+}
+
+// ── 리스크 / 면담 / 근속 ────────────────────────────────────────────────
+
+export interface TenureSummary {
+  tenure: string;
+  count: number;
+  overall: number | null;
+}
+
+export function summarizeByTenure(rows: ResponseRow[]): TenureSummary[] {
+  const byTenure = new Map<string, ResponseRow[]>();
+  for (const row of rows) {
+    const key = row.tenure ?? "미기재";
+    const bucket = byTenure.get(key);
+    if (bucket) bucket.push(row);
+    else byTenure.set(key, [row]);
+  }
+  return [...byTenure.entries()].map(([tenure, group]) => ({
+    tenure,
+    count: group.length,
+    overall: roundOrNull(meanOf(group.map((r) => r.overall_score ?? NaN))),
+  }));
+}
+
+export interface RiskBreakdown {
+  code: string;
+  label: string;
+  prompt: string;
+  total: number;
+  /** 보기별 응답 수 (보기 순서대로) */
+  buckets: { label: string; count: number; severity: number }[];
+  /** 심각도 1 이상 응답 수 */
+  concerned: number;
+}
+
+/** 선택한 회차의 리스크 문항 응답 분포. */
+export async function loadRiskBreakdown(role: Role, period: string): Promise<RiskBreakdown[]> {
+  await ensureSchema();
+  const rows = (await sql()`
+    select a.question_code, a.value_num, count(*)::int as n
+      from survey_answers a
+      join survey_responses r on r.id = a.response_id
+     where a.value_num is not null
+       and r.period = ${period}
+       and r.visibility = any(${VISIBLE_TO[role]})
+     group by a.question_code, a.value_num
+  `) as { question_code: string; value_num: number; n: number }[];
+
+  return RISK_QUESTIONS.map((question) => {
+    const counts = new Map(
+      rows.filter((r) => r.question_code === question.code).map((r) => [r.value_num, r.n]),
+    );
+    const buckets = (question.options ?? []).map((option) => ({
+      label: option.label,
+      count: counts.get(option.value) ?? 0,
+      severity: severityOf(question.code, option.value) as number,
+    }));
+    return {
+      code: question.code,
+      label: question.risk?.label ?? question.code,
+      prompt: question.prompt,
+      total: buckets.reduce((a, b) => a + b.count, 0),
+      buckets,
+      concerned: buckets.filter((b) => b.severity >= 1).reduce((a, b) => a + b.count, 0),
+    };
+  });
+}
+
+export interface InterviewRequest {
+  responseId: string;
+  name: string;
+  department: string;
+  tenure: string | null;
+  visibility: string;
+  riskLevel: number;
+  first: string;
+  second: string;
+  topic: string;
+  submittedAt: string;
+}
+
+/** 1:1 면담 희망 일시 목록. 인사담당자가 일정을 잡을 때 씁니다. */
+export async function loadInterviewRequests(
+  role: Role,
+  period?: string,
+): Promise<InterviewRequest[]> {
+  await ensureSchema();
+  const rows = (await sql()`
+    select r.id, r.respondent_name, r.department_name, r.tenure, r.visibility,
+           r.risk_level, r.submitted_at, a.question_code, a.value_text
+      from survey_responses r
+      join survey_answers a on a.response_id = r.id
+     where a.question_code in ('interview_first','interview_second','interview_topic')
+       and a.value_text is not null
+       and r.visibility = any(${VISIBLE_TO[role]})
+       and (${period ?? null}::text is null or r.period = ${period ?? null})
+     order by r.submitted_at desc
+  `) as {
+    id: string;
+    respondent_name: string;
+    department_name: string;
+    tenure: string | null;
+    visibility: string;
+    risk_level: number;
+    submitted_at: string;
+    question_code: string;
+    value_text: string;
+  }[];
+
+  const byResponse = new Map<string, InterviewRequest>();
+  for (const row of rows) {
+    let entry = byResponse.get(row.id);
+    if (!entry) {
+      entry = {
+        responseId: row.id,
+        name: row.respondent_name,
+        department: row.department_name,
+        tenure: row.tenure,
+        visibility: row.visibility,
+        riskLevel: Number(row.risk_level ?? 0),
+        first: "",
+        second: "",
+        topic: "",
+        submittedAt: row.submitted_at,
+      };
+      byResponse.set(row.id, entry);
+    }
+    if (row.question_code === "interview_first") entry.first = row.value_text;
+    if (row.question_code === "interview_second") entry.second = row.value_text;
+    if (row.question_code === "interview_topic") entry.topic = row.value_text;
+  }
+  return [...byResponse.values()];
+}
+
+export interface FlaggedAnswer {
+  responseId: string;
+  name: string;
+  department: string;
+  label: string;
+  answer: string;
+  severity: number;
+}
+
+/** 심각도 1 이상인 리스크 응답을 사람 단위로 모읍니다. */
+export async function loadFlaggedAnswers(role: Role, period: string): Promise<FlaggedAnswer[]> {
+  await ensureSchema();
+  const rows = (await sql()`
+    select r.id, r.respondent_name, r.department_name, a.question_code, a.value_num
+      from survey_answers a
+      join survey_responses r on r.id = a.response_id
+     where a.value_num is not null
+       and r.period = ${period}
+       and r.visibility = any(${VISIBLE_TO[role]})
+       and a.question_code = any(${RISK_QUESTIONS.map((q) => q.code)})
+     order by r.submitted_at desc
+  `) as {
+    id: string;
+    respondent_name: string;
+    department_name: string;
+    question_code: string;
+    value_num: number;
+  }[];
+
+  return rows
+    .map((row) => {
+      const question = QUESTION_BY_CODE.get(row.question_code);
+      const severity = severityOf(row.question_code, row.value_num) as number;
+      return {
+        responseId: row.id,
+        name: row.respondent_name,
+        department: row.department_name,
+        label: question?.risk?.label ?? row.question_code,
+        answer:
+          question?.options?.find((o) => o.value === row.value_num)?.label ?? String(row.value_num),
+        severity,
+      };
+    })
+    .filter((row) => row.severity >= 1)
+    .sort((a, b) => b.severity - a.severity);
 }

@@ -142,7 +142,7 @@ async function runMigrations(): Promise<void> {
       section_code  text not null,
       section_label text not null,
       prompt        text not null,
-      qtype         text not null check (qtype in ('scale5','text')),
+      qtype         text not null,
       sort_order    int not null default 0,
       active        boolean not null default true
     )`;
@@ -155,6 +155,8 @@ async function runMigrations(): Promise<void> {
       department_id   int references departments(id) on delete set null,
       department_name text not null,
       visibility      text not null check (visibility in ('both','ceo_only','hr_only')),
+      tenure          text,
+      risk_level      int not null default 0,
       overall_score   numeric(5,2),
       section_scores  jsonb not null default '{}'::jsonb,
       submitted_at    timestamptz not null default now(),
@@ -183,7 +185,15 @@ async function runMigrations(): Promise<void> {
       sent_at     timestamptz
     )`;
 
+  // 기존 배포에 이미 테이블이 있는 경우를 위한 증분 반영.
+  await q`alter table survey_responses add column if not exists tenure text`;
+  await q`alter table survey_responses add column if not exists risk_level int not null default 0`;
+  await q`alter table survey_questions add column if not exists options jsonb`;
+  await q`alter table survey_questions add column if not exists scored boolean not null default true`;
+  await q`alter table survey_questions drop constraint if exists survey_questions_qtype_check`;
+
   await q`create index if not exists survey_responses_period_idx on survey_responses (period)`;
+  await q`create index if not exists survey_responses_risk_idx on survey_responses (risk_level desc)`;
   await q`create index if not exists survey_responses_dept_idx on survey_responses (department_id)`;
   await q`create index if not exists survey_responses_submitted_idx on survey_responses (submitted_at desc)`;
   await q`create index if not exists survey_answers_response_idx on survey_answers (response_id)`;
@@ -225,13 +235,19 @@ async function syncQuestions(q: SqlFn) {
     const sectionLabel = SECTION_BY_CODE.get(question.sectionCode)?.label ?? question.sectionCode;
     codes.push(question.code);
     await q`
-      insert into survey_questions (code, section_code, section_label, prompt, qtype, sort_order, active)
-      values (${question.code}, ${question.sectionCode}, ${sectionLabel}, ${question.prompt}, ${question.type}, ${i}, true)
+      insert into survey_questions
+        (code, section_code, section_label, prompt, qtype, options, scored, sort_order, active)
+      values
+        (${question.code}, ${question.sectionCode}, ${sectionLabel}, ${question.prompt},
+         ${question.type}, ${question.options ? JSON.stringify(question.options) : null}::jsonb,
+         ${question.scored}, ${i}, true)
       on conflict (code) do update set
         section_code  = excluded.section_code,
         section_label = excluded.section_label,
         prompt        = excluded.prompt,
         qtype         = excluded.qtype,
+        options       = excluded.options,
+        scored        = excluded.scored,
         sort_order    = excluded.sort_order,
         active        = true`;
   }

@@ -3,7 +3,7 @@ import { ROLE_LABEL, readSession } from "@/lib/auth";
 import { ensureSchema, sql } from "@/lib/db";
 import { loadDepartments } from "@/lib/queries";
 import { formatDateTime } from "@/lib/period";
-import { SCALE_QUESTIONS, TEXT_QUESTIONS } from "@/lib/questions";
+import { ANSWERABLE_REQUIRED, QUESTIONS, TEXT_QUESTIONS } from "@/lib/questions";
 import DepartmentManager from "@/components/DepartmentManager";
 
 export const dynamic = "force-dynamic";
@@ -108,8 +108,8 @@ export default async function SettingsPage() {
       <section className="card p-6">
         <h2 className="text-base font-bold">설문 구성</h2>
         <p className="mt-1 text-sm leading-relaxed text-muted">
-          현재 척도 문항 {SCALE_QUESTIONS.length}개, 주관식 {TEXT_QUESTIONS.length}개로 구성되어
-          있습니다. 문항을 바꾸려면 코드의 <code>src/lib/questions.ts</code> 를 수정한 뒤 다시
+          현재 선택형 문항 {ANSWERABLE_REQUIRED.length}개, 주관식·면담 항목 {TEXT_QUESTIONS.length}개,
+          전체 {QUESTIONS.length}개 항목으로 구성되어 있습니다. 문항을 바꾸려면 코드의 <code>src/lib/questions.ts</code> 를 수정한 뒤 다시
           배포하면 되고, 문항 코드를 유지하면 과거 회차와의 추이 비교가 그대로 이어집니다.
         </p>
       </section>

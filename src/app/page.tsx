@@ -2,7 +2,6 @@ import Link from "next/link";
 import SurveyForm, { type DepartmentOption } from "@/components/SurveyForm";
 import { ensureSchema, hasDatabaseUrl, sql } from "@/lib/db";
 import { currentPeriod, formatPeriod } from "@/lib/period";
-import { SCALE_QUESTIONS } from "@/lib/questions";
 
 export const dynamic = "force-dynamic";
 
@@ -10,9 +9,7 @@ export default async function SurveyPage() {
   const period = currentPeriod();
   const periodLabel = formatPeriod(period);
 
-  if (!hasDatabaseUrl()) {
-    return <SetupNotice />;
-  }
+  if (!hasDatabaseUrl()) return <SetupNotice />;
 
   let departments: DepartmentOption[] = [];
   try {
@@ -26,10 +23,10 @@ export default async function SurveyPage() {
 
   return (
     <main className="mx-auto max-w-3xl px-5 py-10">
-      <header className="mb-7">
+      <header className="mb-6">
         <div className="flex items-start justify-between gap-4">
-          <p className="text-xs font-bold uppercase tracking-[0.14em] text-brand">
-            {periodLabel} 정기 진단
+          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-brand">
+            Monthly Organization Condition Survey
           </p>
           <Link
             href="/dashboard"
@@ -38,15 +35,27 @@ export default async function SurveyPage() {
             관리자
           </Link>
         </div>
-        <h1 className="mt-2 text-2xl font-bold leading-snug">사내 업무환경·소통 진단</h1>
-        <p className="mt-3 text-sm leading-relaxed text-muted">
-          더 나은 업무 환경을 만들기 위해 매월 진행하는 설문입니다. 정답이 있는 조사가 아니니
-          평소 느끼신 그대로 응답해 주시면 됩니다. 필수 문항 {SCALE_QUESTIONS.length}개, 약 5분
-          정도 걸립니다.
+        <p className="mt-3 text-sm text-muted">지난 한 달, 회사생활 어떠셨나요?</p>
+        <h1 className="mt-1 text-2xl font-bold leading-snug">{periodLabel} 조직 컨디션 설문</h1>
+        <p className="mt-3 text-xs leading-relaxed text-muted">
+          평가 대상 기간: 지난 한 달 · 소요시간 약 3~5분 · 응답 내용은 대표이사와 인사책임자만
+          열람합니다
         </p>
       </header>
 
-      <SurveyForm departments={departments} period={period} periodLabel={periodLabel} />
+      <div className="mb-5 space-y-2.5">
+        <p className="card px-4 py-3.5 text-sm leading-relaxed">
+          <span className="mr-1.5">💬</span>이 설문은 직원 개인을 평가하기 위한 것이 아니라, 회사의
+          업무환경·소통·리더십·조직문화를 개선하기 위한 월간 설문입니다. 지난 한 달을 돌아보며
+          솔직하게 답변해 주세요. <b>인사평가와는 무관합니다.</b>
+        </p>
+        <p className="card px-4 py-3.5 text-sm leading-relaxed">
+          <span className="mr-1.5">🔒</span>응답 내용은 본인이 선택한 열람자만 확인하며, 인사평가 등
+          다른 목적으로는 절대 사용되지 않습니다. <b>솔직한 응답으로 인한 불이익은 일절 없습니다.</b>
+        </p>
+      </div>
+
+      <SurveyForm departments={departments} periodLabel={periodLabel} />
     </main>
   );
 }

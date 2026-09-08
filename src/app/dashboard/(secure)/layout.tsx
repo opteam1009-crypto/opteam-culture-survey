@@ -8,6 +8,7 @@ export const dynamic = "force-dynamic";
 const NAV = [
   { href: "/dashboard", label: "현황" },
   { href: "/dashboard/responses", label: "응답 열람" },
+  { href: "/dashboard/interviews", label: "면담 일정" },
   { href: "/dashboard/settings", label: "설정" },
 ];
 
