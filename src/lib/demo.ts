@@ -83,10 +83,19 @@ const CEO_TEXTS = [
   "지금 방향에는 공감합니다. 속도만 조금 조절되면 좋겠습니다.",
 ];
 
-const SLOTS = [
+// 실제 응답처럼 날짜를 적는 사람과 요일만 적는 사람을 섞습니다.
+const WEEKDAY_SLOTS = [
   "화요일 오후 2시 이후", "목요일 오전 10시~12시", "금요일 오후 3시 이후",
   "수요일 점심 이후 아무때나", "월요일 오전", "목요일 오후 4시 이후",
 ];
+
+function datedSlot(period: string, rand: () => number): string {
+  const [, month] = period.split("-").map(Number);
+  const day = 2 + Math.floor(rand() * 26);
+  const band = ["오전", "오후", "저녁"][Math.floor(rand() * 3)];
+  const hour = band === "오전" ? 10 : band === "오후" ? 14 + Math.floor(rand() * 3) : 18;
+  return `${month}월 ${day}일 ${band} ${hour}시 이후`;
+}
 
 const TOPICS = ["", "", "업무 분장", "커리어 방향", "", "업무량 조정", ""];
 
@@ -158,9 +167,14 @@ export function buildDemoResponses(seed = 20260908): DemoResponse[] {
       numeric.risk_2 = rand() < riskChance * 0.45 ? (rand() < 0.6 ? 2 : 3) : 1;
       numeric.risk_3 = rand() < riskChance * 0.8 ? (rand() < 0.6 ? 2 : 3) : 1;
 
+      const pickSlot = () =>
+        rand() < 0.6
+          ? datedSlot(period, rand)
+          : WEEKDAY_SLOTS[Math.floor(rand() * WEEKDAY_SLOTS.length)];
+
       const texts: Record<string, string> = {
-        interview_first: SLOTS[Math.floor(rand() * SLOTS.length)],
-        interview_second: SLOTS[Math.floor(rand() * SLOTS.length)],
+        interview_first: pickSlot(),
+        interview_second: pickSlot(),
       };
       const topic = TOPICS[Math.floor(rand() * TOPICS.length)];
       if (topic) texts.interview_topic = topic;

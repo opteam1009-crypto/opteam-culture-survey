@@ -152,3 +152,87 @@ export const SESSION_COOKIE_OPTIONS = {
   path: "/",
   maxAge: SESSION_HOURS * 60 * 60,
 };
+
+// ── 무차별 대입 방지 ────────────────────────────────────────────────────
+// 대시보드는 공개 주소에 있고 비밀번호가 짧을 수 있으므로, 실패 횟수를 DB 에
+// 기록해 인스턴스가 바뀌어도 제한이 유지되도록 합니다.
+
+const MAX_ATTEMPTS = 8;
+const WINDOW_MINUTES = 10;
+const BLOCK_MINUTES = 15;
+
+export interface RateLimitResult {
+  allowed: boolean;
+  retryAfterSeconds: number;
+  remaining: number;
+}
+
+export async function checkLoginRate(clientKey: string): Promise<RateLimitResult> {
+  const { ensureSchema, rawQuery } = await import("./db");
+  await ensureSchema();
+
+  // interval 은 문자열 리터럴 안에 바인딩 파라미터를 넣을 수 없으므로
+  // make_interval 로 분 단위를 파라미터로 넘깁니다.
+  const rows = (await rawQuery(
+    `insert into login_attempts (client_key, attempts, window_start)
+     values ($1, 0, now())
+     on conflict (client_key) do update set
+       attempts     = case when login_attempts.window_start < now() - make_interval(mins => $2)
+                          then 0 else login_attempts.attempts end,
+       window_start = case when login_attempts.window_start < now() - make_interval(mins => $2)
+                          then now() else login_attempts.window_start end
+     returning attempts, blocked_until,
+               greatest(0, coalesce(extract(epoch from (blocked_until - now()))::int, 0)) as retry_after`,
+    [clientKey, WINDOW_MINUTES],
+  )) as { attempts: number; blocked_until: string | null; retry_after: number }[];
+
+  const row = rows[0];
+  if (row?.blocked_until && row.retry_after > 0) {
+    return { allowed: false, retryAfterSeconds: row.retry_after, remaining: 0 };
+  }
+  return {
+    allowed: true,
+    retryAfterSeconds: 0,
+    remaining: Math.max(0, MAX_ATTEMPTS - (row?.attempts ?? 0)),
+  };
+}
+
+/** 로그인 실패를 기록하고, 한도를 넘으면 잠급니다. */
+export async function recordLoginFailure(clientKey: string): Promise<RateLimitResult> {
+  const { rawQuery } = await import("./db");
+  const rows = (await rawQuery(
+    `update login_attempts
+        set attempts = attempts + 1,
+            blocked_until = case when attempts + 1 >= $2
+                                 then now() + make_interval(mins => $3)
+                                 else blocked_until end
+      where client_key = $1
+      returning attempts,
+                greatest(0, coalesce(extract(epoch from (blocked_until - now()))::int, 0)) as retry_after`,
+    [clientKey, MAX_ATTEMPTS, BLOCK_MINUTES],
+  )) as { attempts: number; retry_after: number }[];
+
+  const row = rows[0];
+  const remaining = Math.max(0, MAX_ATTEMPTS - (row?.attempts ?? 0));
+  return {
+    allowed: remaining > 0,
+    retryAfterSeconds: row?.retry_after ?? 0,
+    remaining,
+  };
+}
+
+export async function clearLoginFailures(clientKey: string): Promise<void> {
+  const { rawQuery } = await import("./db");
+  await rawQuery(
+    `update login_attempts set attempts = 0, blocked_until = null, window_start = now()
+      where client_key = $1`,
+    [clientKey],
+  );
+}
+
+/** 프록시 뒤에 있으므로 X-Forwarded-For 의 첫 주소를 씁니다. */
+export function clientKeyFrom(request: Request): string {
+  const forwarded = request.headers.get("x-forwarded-for") ?? "";
+  const ip = forwarded.split(",")[0]?.trim() || request.headers.get("x-real-ip") || "unknown";
+  return ip.slice(0, 64);
+}

@@ -55,9 +55,13 @@ export default async function DashboardPage({
   const sectionScores = summarizeSections(rows);
   const prevSectionScores = summarizeSections(prevRows);
   const departments = summarizeByDepartment(rows);
-  const questions = await loadQuestionAverages(session.role, period);
-  const riskBreakdown = await loadRiskBreakdown(session.role, period);
-  const flagged = await loadFlaggedAnswers(session.role, period);
+  // 서로 의존하지 않는 질의라 순서대로 기다릴 이유가 없습니다.
+  // 왕복이 직렬로 쌓이면 원격 DB 에서는 그대로 체감 지연이 됩니다.
+  const [questions, riskBreakdown, flagged] = await Promise.all([
+    loadQuestionAverages(session.role, period),
+    loadRiskBreakdown(session.role, period),
+    loadFlaggedAnswers(session.role, period),
+  ]);
   const weakest = [...questions].sort((a, b) => (a.score ?? 0) - (b.score ?? 0)).slice(0, 5);
   const strongest = [...questions].sort((a, b) => (b.score ?? 0) - (a.score ?? 0)).slice(0, 3);
   const lowestSection = [...sectionScores]
@@ -120,11 +124,12 @@ export default async function DashboardPage({
       {/* ── 월별 추이 ────────────────────────────────────── */}
       <section className="card p-6">
         <div className="mb-1 flex items-baseline justify-between gap-3">
-          <h2 className="text-base font-bold">전사 종합 점수 월별 추이</h2>
+          <h2 className="text-base font-bold">전사 종합 점수 · 응답 건수 월별 추이</h2>
           <span className="text-xs text-muted">0~100점 환산</span>
         </div>
         <p className="mb-4 text-sm text-muted">
           5점 척도 평균을 100점으로 환산한 값입니다. 50점이 &ldquo;보통&rdquo;에 해당합니다.
+          아래 막대는 그 달의 응답 건수로, 건수가 적은 달의 평균은 흔들리기 쉬우니 함께 보세요.
         </p>
         <TrendChart
           seriesName="전사 종합 점수"
@@ -375,7 +380,7 @@ function EmptyState({ role }: { role: string }) {
         {role} 계정으로 볼 수 있는 응답이 아직 없습니다. 설문 링크를 구성원에게 공유하시면 제출되는
         대로 이곳에 집계됩니다.
       </p>
-      <Link href="/?preview=1" className="btn-ghost mt-6">
+      <Link href="/" className="btn-ghost mt-6">
         설문 페이지 열기
       </Link>
     </div>

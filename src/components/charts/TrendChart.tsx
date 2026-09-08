@@ -14,17 +14,22 @@ interface Props {
   points: TrendPoint[];
   /** 시리즈 이름. 단일 시리즈이므로 범례 대신 제목이 이름을 대신합니다. */
   seriesName: string;
-  height?: number;
 }
 
-const PAD = { top: 16, right: 20, bottom: 26, left: 34 };
+const PAD = { top: 16, right: 20, bottom: 24, left: 34 };
+const PLOT_H = 168;
+const GAP = 18;
+const COUNT_H = 54;
 const GRID = [0, 25, 50, 75, 100];
 
-export default function TrendChart({ points, seriesName, height = 230 }: Props) {
+/**
+ * 위쪽은 점수 추이(선), 아래쪽은 같은 x 축을 공유하는 응답 건수(막대)입니다.
+ * 두 지표의 단위가 달라 한 축에 겹치면 안 되므로 축을 나눠 아래위로 놓았습니다.
+ * 건수를 함께 봐야 "응답이 3건뿐인 달의 평균"에 속지 않습니다.
+ */
+export default function TrendChart({ points, seriesName }: Props) {
   const [hover, setHover] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  // 컨테이너 실제 폭에 맞춰 그립니다. 고정 viewBox 로 두면 넓은 화면에서
-  // 그래프가 가운데에 작게 박히고 양옆이 비어 버립니다.
   const [width, setWidth] = useState(720);
 
   useEffect(() => {
@@ -38,22 +43,31 @@ export default function TrendChart({ points, seriesName, height = 230 }: Props) 
     return () => observer.disconnect();
   }, []);
 
+  const height = PAD.top + PLOT_H + GAP + COUNT_H + PAD.bottom;
   const plotW = Math.max(width - PAD.left - PAD.right, 80);
-  const plotH = height - PAD.top - PAD.bottom;
 
   const valued = points.filter((p) => p.value !== null);
   if (valued.length === 0) {
     return (
       <div ref={containerRef} className="w-full">
-        <EmptyPlot height={height} />
+        <div
+          className="flex items-center justify-center rounded-xl border border-dashed border-line text-sm text-muted"
+          style={{ height }}
+        >
+          표시할 응답이 아직 없습니다.
+        </div>
       </div>
     );
   }
 
-
   const x = (i: number) =>
     PAD.left + (points.length === 1 ? plotW / 2 : (i / (points.length - 1)) * plotW);
-  const y = (v: number) => PAD.top + plotH - (v / 100) * plotH;
+  const y = (v: number) => PAD.top + PLOT_H - (v / 100) * PLOT_H;
+
+  const countTop = PAD.top + PLOT_H + GAP;
+  const countBase = countTop + COUNT_H;
+  const maxCount = Math.max(1, ...points.map((p) => p.count));
+  const barW = Math.min(34, Math.max(10, plotW / Math.max(points.length, 1) - 14));
 
   const path = points
     .map((p, i) => (p.value === null ? null : `${x(i)},${y(p.value)}`))
@@ -73,9 +87,10 @@ export default function TrendChart({ points, seriesName, height = 230 }: Props) 
         height={height}
         className="block"
         role="img"
-        aria-label={`${seriesName} 월별 추이`}
+        aria-label={`${seriesName} 월별 추이와 응답 건수`}
         onMouseLeave={() => setHover(null)}
       >
+        {/* ── 점수 영역 ─────────────────────────────── */}
         {GRID.map((g) => (
           <g key={g}>
             <line
@@ -92,7 +107,14 @@ export default function TrendChart({ points, seriesName, height = 230 }: Props) 
           </g>
         ))}
 
-        <path d={path} fill="none" stroke={VIZ.series} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+        <path
+          d={path}
+          fill="none"
+          stroke={VIZ.series}
+          strokeWidth={2}
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
 
         {points.map((p, i) =>
           p.value === null ? null : (
@@ -108,7 +130,6 @@ export default function TrendChart({ points, seriesName, height = 230 }: Props) 
           ),
         )}
 
-        {/* 마지막 지점만 직접 라벨 — 모든 점에 숫자를 찍지 않습니다. */}
         {last && lastIndex >= 0 && hover === null && (
           <text
             x={x(lastIndex)}
@@ -122,12 +143,51 @@ export default function TrendChart({ points, seriesName, height = 230 }: Props) 
           </text>
         )}
 
+        {/* ── 응답 건수 영역 ─────────────────────────── */}
+        <text x={PAD.left - 7} y={countTop + 9} textAnchor="end" fontSize={9} fill={VIZ.muted}>
+          건수
+        </text>
+        <line
+          x1={PAD.left}
+          x2={width - PAD.right}
+          y1={countBase}
+          y2={countBase}
+          stroke={VIZ.axis}
+          strokeWidth={1}
+        />
+        {points.map((p, i) => {
+          const h = p.count === 0 ? 0 : Math.max(3, (p.count / maxCount) * (COUNT_H - 14));
+          return (
+            <g key={`bar-${p.period}`}>
+              <rect
+                x={x(i) - barW / 2}
+                y={countBase - h}
+                width={barW}
+                height={h}
+                rx={3}
+                fill={hover === i ? VIZ.series : "#b7d3f6"}
+              />
+              <text
+                x={x(i)}
+                y={countBase - h - 4}
+                textAnchor="middle"
+                fontSize={10}
+                fontWeight={700}
+                fill={hover === i ? VIZ.ink : VIZ.muted}
+              >
+                {p.count}
+              </text>
+            </g>
+          );
+        })}
+
+        {/* ── 공유 x 축과 히트 영역 ──────────────────── */}
         {active && hover !== null && (
           <line
             x1={x(hover)}
             x2={x(hover)}
             y1={PAD.top}
-            y2={PAD.top + plotH}
+            y2={countBase}
             stroke={VIZ.axis}
             strokeWidth={1}
             strokeDasharray="3 3"
@@ -140,7 +200,7 @@ export default function TrendChart({ points, seriesName, height = 230 }: Props) 
               x={x(i) - plotW / Math.max(points.length, 2) / 2}
               y={PAD.top}
               width={Math.max(plotW / Math.max(points.length, 1), 24)}
-              height={plotH}
+              height={countBase - PAD.top}
               fill="transparent"
               onMouseEnter={() => setHover(i)}
             />
@@ -162,17 +222,6 @@ export default function TrendChart({ points, seriesName, height = 230 }: Props) 
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-function EmptyPlot({ height }: { height: number }) {
-  return (
-    <div
-      className="flex items-center justify-center rounded-lg border border-dashed border-line text-sm text-muted"
-      style={{ height }}
-    >
-      표시할 응답이 아직 없습니다.
     </div>
   );
 }

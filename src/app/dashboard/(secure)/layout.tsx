@@ -41,7 +41,7 @@ export default async function SecureLayout({ children }: { children: React.React
           </nav>
           <div className="ml-auto flex items-center gap-3">
             <Link
-              href="/?preview=1"
+              href="/"
               className="text-xs text-muted transition hover:text-ink"
             >
               설문 화면

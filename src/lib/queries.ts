@@ -239,22 +239,23 @@ export async function loadResponseDetail(
   id: string,
 ): Promise<ResponseDetail | null> {
   await ensureSchema();
-  const rows = (await sql()`
-    select id, period, respondent_name, department_id, department_name, visibility,
-           risk_level, is_demo, overall_score, section_scores, submitted_at
-      from survey_responses
-     where id = ${id}::uuid
-       and visibility = any(${VISIBLE_TO[role]})
-  `) as ResponseRow[];
+  const [rows, answers] = await Promise.all([
+    sql()`
+      select id, period, respondent_name, department_id, department_name, visibility,
+             risk_level, is_demo, overall_score, section_scores, submitted_at
+        from survey_responses
+       where id = ${id}::uuid
+         and visibility = any(${VISIBLE_TO[role]})
+    ` as Promise<ResponseRow[]>,
+    sql()`
+      select question_code, value_num, value_text
+        from survey_answers
+       where response_id = ${id}::uuid
+    ` as Promise<{ question_code: string; value_num: number | null; value_text: string | null }[]>,
+  ]);
 
   const response = rows[0];
   if (!response) return null;
-
-  const answers = (await sql()`
-    select question_code, value_num, value_text
-      from survey_answers
-     where response_id = ${id}::uuid
-  `) as { question_code: string; value_num: number | null; value_text: string | null }[];
 
   return {
     ...response,

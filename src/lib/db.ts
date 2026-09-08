@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { Pool } from "pg";
 import { QUESTIONS, SECTION_BY_CODE } from "./questions";
 
@@ -68,6 +69,9 @@ export type SqlFn = (
  * 넘어가므로 문자열 결합으로 인한 인젝션이 생기지 않습니다.
  * 환경변수는 모듈 로드 시점이 아니라 호출 시점에 읽어 빌드가 통과하도록 합니다.
  */
+/** 진단용 왕복 횟수 카운터. DB_TRACE=1 일 때만 셉니다. */
+export const dbStats = { queries: 0, ms: 0 };
+
 export function sql(): SqlFn {
   return async (strings, ...values) => {
     let text = "";
@@ -75,7 +79,10 @@ export function sql(): SqlFn {
       text += strings[i];
       if (i < values.length) text += `$${i + 1}`;
     }
+    const started = Date.now();
     const result = await getPool().query(text, values as any[]);
+    dbStats.queries += 1;
+    dbStats.ms += Date.now() - started;
     return result.rows;
   };
 }
@@ -127,16 +134,23 @@ export function ensureSchema(): Promise<void> {
 async function runMigrations(): Promise<void> {
   const q = sql();
 
-  await q`
+  // DDL 을 한 번에 보냅니다. 문장을 나눠 보내면 문장 수만큼 왕복이 생기는데,
+  // 서버리스에서는 인스턴스가 새로 뜰 때마다 그 비용을 전부 다시 냅니다.
+  await rawQuery(`
+    create table if not exists app_meta (
+      key        text primary key,
+      value      text not null,
+      updated_at timestamptz not null default now()
+    );
+
     create table if not exists departments (
       id          serial primary key,
       name        text not null unique,
       sort_order  int not null default 100,
       active      boolean not null default true,
       created_at  timestamptz not null default now()
-    )`;
+    );
 
-  await q`
     create table if not exists survey_questions (
       code          text primary key,
       section_code  text not null,
@@ -145,9 +159,8 @@ async function runMigrations(): Promise<void> {
       qtype         text not null,
       sort_order    int not null default 0,
       active        boolean not null default true
-    )`;
+    );
 
-  await q`
     create table if not exists survey_responses (
       id              uuid primary key default gen_random_uuid(),
       period          text not null,
@@ -155,27 +168,30 @@ async function runMigrations(): Promise<void> {
       department_id   int references departments(id) on delete set null,
       department_name text not null,
       visibility      text not null check (visibility in ('both','ceo_only','hr_only')),
-      -- 근속기간은 설문에서 뺐다. 되살릴 때를 위해 컬럼만 남겨두며 항상 null 이다.
       tenure          text,
       risk_level      int not null default 0,
-      -- 확인용으로 만든 예시 응답 표시. 한 번에 지울 수 있게 해두는 것이 목적이다.
       is_demo         boolean not null default false,
       overall_score   numeric(5,2),
       section_scores  jsonb not null default '{}'::jsonb,
       submitted_at    timestamptz not null default now(),
       user_agent      text
-    )`;
+    );
 
-  await q`
     create table if not exists survey_answers (
       id            bigserial primary key,
       response_id   uuid not null references survey_responses(id) on delete cascade,
       question_code text not null,
       value_num     int,
       value_text    text
-    )`;
+    );
 
-  await q`
+    create table if not exists login_attempts (
+      client_key   text primary key,
+      attempts     int not null default 0,
+      window_start timestamptz not null default now(),
+      blocked_until timestamptz
+    );
+
     create table if not exists notification_log (
       id          bigserial primary key,
       response_id uuid references survey_responses(id) on delete cascade,
@@ -186,77 +202,132 @@ async function runMigrations(): Promise<void> {
       error       text,
       created_at  timestamptz not null default now(),
       sent_at     timestamptz
-    )`;
+    );
 
-  // 기존 배포에 이미 테이블이 있는 경우를 위한 증분 반영.
-  await q`alter table survey_responses add column if not exists tenure text`;
-  await q`alter table survey_responses add column if not exists risk_level int not null default 0`;
-  await q`alter table survey_responses add column if not exists is_demo boolean not null default false`;
-  await q`alter table survey_questions add column if not exists options jsonb`;
-  await q`alter table survey_questions add column if not exists scored boolean not null default true`;
-  await q`alter table survey_questions drop constraint if exists survey_questions_qtype_check`;
+    alter table survey_responses add column if not exists tenure text;
+    alter table survey_responses add column if not exists risk_level int not null default 0;
+    alter table survey_responses add column if not exists is_demo boolean not null default false;
+    alter table survey_questions add column if not exists options jsonb;
+    alter table survey_questions add column if not exists scored boolean not null default true;
+    alter table survey_questions drop constraint if exists survey_questions_qtype_check;
 
-  await q`create index if not exists survey_responses_period_idx on survey_responses (period)`;
-  await q`create index if not exists survey_responses_risk_idx on survey_responses (risk_level desc)`;
-  await q`create index if not exists survey_responses_demo_idx on survey_responses (is_demo)`;
-  await q`create index if not exists survey_responses_dept_idx on survey_responses (department_id)`;
-  await q`create index if not exists survey_responses_submitted_idx on survey_responses (submitted_at desc)`;
-  await q`create index if not exists survey_answers_response_idx on survey_answers (response_id)`;
-  await q`create index if not exists survey_answers_question_idx on survey_answers (question_code)`;
+    create index if not exists survey_responses_period_idx on survey_responses (period);
+    create index if not exists survey_responses_dept_idx on survey_responses (department_id);
+    create index if not exists survey_responses_submitted_idx on survey_responses (submitted_at desc);
+    create index if not exists survey_responses_risk_idx on survey_responses (risk_level desc);
+    create index if not exists survey_responses_demo_idx on survey_responses (is_demo);
+    create index if not exists survey_answers_response_idx on survey_answers (response_id);
+    create index if not exists survey_answers_question_idx on survey_answers (question_code);
+  `);
 
-  await seedDepartments(q);
-  await syncQuestions(q);
+  // 부서 시드 여부와 문항 동기화 필요 여부를 한 번에 확인합니다.
+  const state = (await q`
+    select (select count(*)::int from departments)                              as dept_count,
+           (select count(*)::int from survey_responses)                         as response_count,
+           (select string_agg(name, '|' order by name) from departments)        as dept_names,
+           (select value from app_meta where key = 'questions_hash')            as questions_hash
+  `) as {
+    dept_count: number;
+    response_count: number;
+    dept_names: string | null;
+    questions_hash: string | null;
+  }[];
+  const current = state[0];
+
+  await seedDepartments(current);
+  await syncQuestions(current.questions_hash);
 }
 
-async function seedDepartments(q: SqlFn) {
-  const existing = (await q`select name from departments`) as { name: string }[];
+async function seedDepartments(state: {
+  dept_count: number;
+  response_count: number;
+  dept_names: string | null;
+}) {
+  const q = sql();
 
-  if (existing.length > 0) {
-    const responses = (await q`select count(*)::int as n from survey_responses`) as {
-      n: number;
-    }[];
+  if (state.dept_count > 0) {
+    const names = (state.dept_names ?? "").split("|").filter(Boolean);
     const untouched =
-      responses[0]?.n === 0 &&
-      existing.every((row) => PLACEHOLDER_DEPARTMENTS.includes(row.name));
+      state.response_count === 0 && names.every((n) => PLACEHOLDER_DEPARTMENTS.includes(n));
     if (!untouched) return;
     await q`delete from departments`;
   }
 
-  for (let i = 0; i < DEFAULT_DEPARTMENTS.length; i++) {
-    await q`insert into departments (name, sort_order)
-            values (${DEFAULT_DEPARTMENTS[i]}, ${(i + 1) * 10})
-            on conflict (name) do nothing`;
-  }
+  const values: unknown[] = [];
+  const rows = DEFAULT_DEPARTMENTS.map((name, i) => {
+    values.push(name, (i + 1) * 10);
+    return `($${i * 2 + 1},$${i * 2 + 2})`;
+  });
+  await rawQuery(
+    `insert into departments (name, sort_order) values ${rows.join(",")}
+     on conflict (name) do nothing`,
+    values,
+  );
 }
 
 /**
- * 코드에 정의된 문항을 DB 로 반영합니다. 문구 수정은 그대로 덮어쓰고,
- * 코드에서 사라진 문항은 지우지 않고 비활성 처리해 과거 응답을 보존합니다.
+ * 코드에 정의된 문항을 DB 로 반영합니다. 문항이 그대로면 아무것도 하지 않습니다.
+ * 예전에는 배포마다, 그리고 서버리스 인스턴스가 새로 뜰 때마다 문항 수만큼
+ * INSERT 를 반복해 콜드 스타트가 느려졌습니다.
  */
-async function syncQuestions(q: SqlFn) {
-  const codes: string[] = [];
-  for (let i = 0; i < QUESTIONS.length; i++) {
-    const question = QUESTIONS[i];
-    const sectionLabel = SECTION_BY_CODE.get(question.sectionCode)?.label ?? question.sectionCode;
-    codes.push(question.code);
-    await q`
-      insert into survey_questions
-        (code, section_code, section_label, prompt, qtype, options, scored, sort_order, active)
-      values
-        (${question.code}, ${question.sectionCode}, ${sectionLabel}, ${question.prompt},
-         ${question.type}, ${question.options ? JSON.stringify(question.options) : null}::jsonb,
-         ${question.scored}, ${i}, true)
-      on conflict (code) do update set
-        section_code  = excluded.section_code,
-        section_label = excluded.section_label,
-        prompt        = excluded.prompt,
-        qtype         = excluded.qtype,
-        options       = excluded.options,
-        scored        = excluded.scored,
-        sort_order    = excluded.sort_order,
-        active        = true`;
-  }
-  await q`update survey_questions set active = false where code <> all(${codes})`;
+async function syncQuestions(storedHash: string | null) {
+  const payload = JSON.stringify(
+    QUESTIONS.map((question, i) => [
+      question.code,
+      question.sectionCode,
+      SECTION_BY_CODE.get(question.sectionCode)?.label ?? question.sectionCode,
+      question.prompt,
+      question.type,
+      question.options ?? null,
+      question.scored,
+      i,
+    ]),
+  );
+  const hash = createHash("sha256").update(payload).digest("hex").slice(0, 32);
+  if (storedHash === hash) return;
+
+  const values: unknown[] = [];
+  const rows = QUESTIONS.map((question, i) => {
+    const base = i * 8;
+    values.push(
+      question.code,
+      question.sectionCode,
+      SECTION_BY_CODE.get(question.sectionCode)?.label ?? question.sectionCode,
+      question.prompt,
+      question.type,
+      question.options ? JSON.stringify(question.options) : null,
+      question.scored,
+      i,
+    );
+    return `($${base + 1},$${base + 2},$${base + 3},$${base + 4},$${base + 5},$${base + 6}::jsonb,$${base + 7},$${base + 8},true)`;
+  });
+
+  await rawQuery(
+    `insert into survey_questions
+       (code, section_code, section_label, prompt, qtype, options, scored, sort_order, active)
+     values ${rows.join(",")}
+     on conflict (code) do update set
+       section_code  = excluded.section_code,
+       section_label = excluded.section_label,
+       prompt        = excluded.prompt,
+       qtype         = excluded.qtype,
+       options       = excluded.options,
+       scored        = excluded.scored,
+       sort_order    = excluded.sort_order,
+       active        = true`,
+    values,
+  );
+
+  // 코드에서 사라진 문항은 지우지 않고 비활성 처리해 과거 응답을 보존합니다.
+  await rawQuery(`update survey_questions set active = false where code <> all($1)`, [
+    QUESTIONS.map((question) => question.code),
+  ]);
+
+  await rawQuery(
+    `insert into app_meta (key, value, updated_at) values ('questions_hash', $1, now())
+     on conflict (key) do update set value = excluded.value, updated_at = now()`,
+    [hash],
+  );
 }
 
 /**
@@ -267,6 +338,9 @@ export async function rawQuery(
   text: string,
   params: unknown[] = [],
 ): Promise<Record<string, any>[]> {
+  const started = Date.now();
   const result = await getPool().query(text, params as any[]);
+  dbStats.queries += 1;
+  dbStats.ms += Date.now() - started;
   return result.rows;
 }
