@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { SignJWT, jwtVerify } from "jose";
-import { timingSafeEqual } from "node:crypto";
+import { createHash, timingSafeEqual } from "node:crypto";
 
 export type Role = "ceo" | "hr";
 
@@ -39,17 +39,44 @@ function realValue(raw: string | undefined): string {
 export class PlaceholderSecretError extends Error {
   constructor() {
     super(
-      "SESSION_SECRET 이 설정되지 않았거나 .env.example 의 예시값 그대로입니다. " +
-        "Vercel 환경변수에서 32자 이상의 실제 랜덤 문자열로 바꾼 뒤 재배포하세요.",
+      "세션 서명 키를 만들 수 없습니다. DATABASE_URL 이 연결되어 있으면 자동으로 파생되지만, " +
+        "그것도 없다면 SESSION_SECRET 에 32자 이상의 랜덤 문자열을 등록한 뒤 재배포하세요.",
     );
     this.name = "PlaceholderSecretError";
   }
 }
 
+// SESSION_SECRET 을 따로 등록하지 않아도 되도록, 없으면 DATABASE_URL 에서 파생합니다.
+// DATABASE_URL 은 이미 비밀이고 배포·인스턴스 간에 값이 같아 서명 키의 재료로 적합합니다.
+// (이 값이 유출되면 세션 위조보다 DB 전체 유출이 훨씬 큰 문제이므로 보안 강도를 낮추지 않습니다.)
+const DB_URL_KEYS = [
+  "DATABASE_URL",
+  "POSTGRES_URL",
+  "DATABASE_URL_UNPOOLED",
+  "POSTGRES_URL_NON_POOLING",
+  "POSTGRES_PRISMA_URL",
+];
+
+function derivedKeyMaterial(): string {
+  const url = DB_URL_KEYS.map((k) => process.env[k]?.trim() ?? "").find(
+    (v) => v.length > 0 && !v.includes("user:password@") && !v.includes("ep-xxx"),
+  );
+  return url ?? "";
+}
+
+export function sessionKeyAvailable(): boolean {
+  return realValue(process.env.SESSION_SECRET).length >= 16 || derivedKeyMaterial().length > 0;
+}
+
 function secretKey(): Uint8Array {
-  const secret = realValue(process.env.SESSION_SECRET);
-  if (secret.length < 16) throw new PlaceholderSecretError();
-  return new TextEncoder().encode(secret);
+  const explicit = realValue(process.env.SESSION_SECRET);
+  if (explicit.length >= 16) return new TextEncoder().encode(explicit);
+
+  const material = derivedKeyMaterial();
+  if (material) {
+    return createHash("sha256").update(`opteam-culture-survey:session:${material}`).digest();
+  }
+  throw new PlaceholderSecretError();
 }
 
 function safeEqual(a: string, b: string): boolean {
@@ -91,8 +118,8 @@ export function loginConfigProblem(): string | null {
   if (ceo && hr && ceo === hr) {
     return "대표이사와 인사책임자 비밀번호가 같습니다. 열람 범위가 계정별로 갈리므로 서로 다르게 설정해 주세요.";
   }
-  if (!realValue(process.env.SESSION_SECRET) || realValue(process.env.SESSION_SECRET).length < 16) {
-    return "SESSION_SECRET 이 설정되지 않았거나 예시값 그대로입니다. 32자 이상의 실제 랜덤 문자열로 바꾼 뒤 재배포해 주세요.";
+  if (!sessionKeyAvailable()) {
+    return "세션 서명 키를 만들 수 없습니다. DATABASE_URL 이 연결되어 있으면 자동으로 파생되지만, 그것도 없다면 SESSION_SECRET 에 32자 이상의 랜덤 문자열을 등록한 뒤 재배포해 주세요.";
   }
   return null;
 }
