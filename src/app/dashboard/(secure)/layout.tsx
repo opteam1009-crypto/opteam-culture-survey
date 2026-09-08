@@ -40,6 +40,12 @@ export default async function SecureLayout({ children }: { children: React.React
             ))}
           </nav>
           <div className="ml-auto flex items-center gap-3">
+            <Link
+              href="/?preview=1"
+              className="text-xs text-muted transition hover:text-ink"
+            >
+              설문 화면
+            </Link>
             <span className="rounded-full bg-brandSoft px-2.5 py-1 text-xs font-semibold text-brand">
               {ROLE_LABEL[session.role]}
             </span>

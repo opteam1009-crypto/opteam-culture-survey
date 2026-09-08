@@ -390,7 +390,7 @@ function EmptyState({ role }: { role: string }) {
         {role} 계정으로 볼 수 있는 응답이 아직 없습니다. 설문 링크를 구성원에게 공유하시면 제출되는
         대로 이곳에 집계됩니다.
       </p>
-      <Link href="/" className="btn-ghost mt-6">
+      <Link href="/?preview=1" className="btn-ghost mt-6">
         설문 페이지 열기
       </Link>
     </div>

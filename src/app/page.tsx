@@ -1,11 +1,29 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { readSession } from "@/lib/auth";
 import SurveyForm, { type DepartmentOption } from "@/components/SurveyForm";
 import { ensureSchema, hasDatabaseUrl, sql } from "@/lib/db";
 import { currentPeriod, formatPeriod } from "@/lib/period";
 
 export const dynamic = "force-dynamic";
 
-export default async function SurveyPage() {
+export default async function SurveyPage({
+  searchParams,
+}: {
+  searchParams: { preview?: string };
+}) {
+  // 대시보드에 로그인한 상태라면 설문지를 다시 볼 이유가 없으므로 바로 넘깁니다.
+  // 설문 화면을 확인해야 할 때는 ?preview=1 로 들어옵니다.
+  if (searchParams.preview !== "1") {
+    let session = null;
+    try {
+      session = await readSession();
+    } catch {
+      session = null;
+    }
+    if (session) redirect("/dashboard");
+  }
+
   const period = currentPeriod();
   const periodLabel = formatPeriod(period);
 
@@ -21,8 +39,15 @@ export default async function SurveyPage() {
     return <SetupNotice detail={err instanceof Error ? err.message : String(err)} />;
   }
 
+  const isPreview = searchParams.preview === "1";
+
   return (
     <main className="mx-auto max-w-3xl px-5 py-10">
+      {isPreview && (
+        <p className="mb-4 rounded-lg bg-brandSoft px-3.5 py-2.5 text-xs text-brand">
+          미리보기입니다. 이 화면에서 제출하면 실제 응답으로 저장되니 주의하세요.
+        </p>
+      )}
       <header className="mb-6">
         <div className="flex items-start justify-between gap-4">
           <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-brand">
@@ -32,7 +57,7 @@ export default async function SurveyPage() {
             href="/dashboard"
             className="shrink-0 text-xs text-muted/70 transition hover:text-muted"
           >
-            관리자
+            {isPreview ? "← 대시보드로" : "관리자"}
           </Link>
         </div>
         <p className="mt-3 text-sm text-muted">지난 한 달, 회사생활 어떠셨나요?</p>
