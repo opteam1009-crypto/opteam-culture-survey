@@ -20,9 +20,15 @@ export class MissingDatabaseUrlError extends Error {
   }
 }
 
+// .env.example 에 적어둔 예시 연결 문자열. Vercel 이 import 시 자동으로 넣어버리므로
+// 실제 값으로 취급하면 정체를 알 수 없는 연결 오류만 남습니다.
+function isPlaceholderUrl(value: string): boolean {
+  return value.includes("user:password@") || value.includes("ep-xxx");
+}
+
 function databaseUrl(): string | undefined {
-  return URL_KEYS.map((k) => process.env[k]).find(
-    (v) => typeof v === "string" && v.length > 0,
+  return URL_KEYS.map((k) => process.env[k]?.trim()).find(
+    (v): v is string => typeof v === "string" && v.length > 0 && !isPlaceholderUrl(v),
   );
 }
 

@@ -3,18 +3,16 @@ import {
   SESSION_COOKIE,
   SESSION_COOKIE_OPTIONS,
   createSessionToken,
-  passwordsConfigured,
+  loginConfigProblem,
   roleForPassword,
 } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
-  if (!passwordsConfigured()) {
-    return NextResponse.json(
-      { error: "대시보드 비밀번호가 설정되지 않았습니다. 환경변수를 먼저 등록해 주세요." },
-      { status: 503 },
-    );
+  const configProblem = loginConfigProblem();
+  if (configProblem) {
+    return NextResponse.json({ error: configProblem }, { status: 503 });
   }
 
   let password = "";
