@@ -256,10 +256,16 @@ export default function SurveyForm({ departments, periodLabel }: Props) {
 
               <div className="px-6 pb-5 pt-1">
                 {showScale && (
-                  <div className="mt-4 flex flex-wrap gap-x-5 gap-y-1.5 rounded-xl bg-gray-50 px-4 py-3 text-[13px] text-ink/75">
+                  <div className="mt-4 flex flex-wrap gap-x-2 gap-y-2 rounded-xl border border-line bg-gray-50/80 px-4 py-3">
                     {labels.map((l) => (
-                      <span key={l.value}>
-                        <b className="text-ink">{l.value}</b> {l.label}
+                      <span
+                        key={l.value}
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-white px-2.5 py-1.5 text-[14px] font-medium text-ink shadow-sm"
+                      >
+                        <b className="flex h-5 w-5 items-center justify-center rounded-md bg-brand text-[12px] font-bold text-white">
+                          {l.value}
+                        </b>
+                        {l.label}
                       </span>
                     ))}
                   </div>
@@ -456,7 +462,7 @@ function ScaleRow({
         })}
       </div>
       {showAnchors && (
-        <div className="mt-2 flex justify-between text-[13px] font-medium text-ink/70">
+        <div className="mt-2 flex justify-between text-[14px] font-medium text-ink/75">
           <span>{labels[0]?.label}</span>
           <span>{labels[labels.length - 1]?.label}</span>
         </div>

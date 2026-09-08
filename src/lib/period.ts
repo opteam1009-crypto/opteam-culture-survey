@@ -44,19 +44,3 @@ export function formatDateTime(value: string | Date): string {
     minute: "2-digit",
   }).format(date);
 }
-
-/**
- * 설문이 평가하는 달. 월말에 그 달을 돌아보며 답하는 방식이므로
- * 회차 이름과 평가 대상이 같은 달입니다(9월 설문 = 9월 평가).
- */
-export function targetMonthLabel(period: string): string {
-  return formatPeriod(period);
-}
-
-/** '2026년 9월 1일 ~ 9월 30일' */
-export function targetRangeLabel(period: string): string {
-  const [y, m] = period.split("-").map(Number);
-  if (!y || !m) return formatPeriod(period);
-  const lastDay = new Date(Date.UTC(y, m, 0)).getUTCDate();
-  return `${y}년 ${m}월 1일 ~ ${m}월 ${lastDay}일`;
-}

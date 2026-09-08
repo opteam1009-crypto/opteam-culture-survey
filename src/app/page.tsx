@@ -1,7 +1,7 @@
 import Link from "next/link";
 import SurveyForm, { type DepartmentOption } from "@/components/SurveyForm";
 import { ensureSchema, hasDatabaseUrl, sql } from "@/lib/db";
-import { currentPeriod, formatPeriod, targetRangeLabel } from "@/lib/period";
+import { currentPeriod, formatPeriod } from "@/lib/period";
 
 export const dynamic = "force-dynamic";
 
@@ -43,10 +43,7 @@ export default async function SurveyPage() {
           <h1 className="mt-1.5 text-[26px] font-bold leading-tight sm:text-[30px]">
             {periodLabel} 조직 컨디션 설문
           </h1>
-          <p className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-white/20 px-3.5 py-2 text-sm font-bold">
-            평가 대상 기간 · {targetRangeLabel(period)}
-          </p>
-          <ul className="mt-3.5 flex flex-wrap gap-x-6 gap-y-1.5 text-sm text-white/85">
+          <ul className="mt-5 flex flex-wrap gap-x-6 gap-y-1.5 text-sm text-white/85">
             <li>소요시간 · 약 3~5분</li>
             <li>열람 · 본인이 선택한 열람자만</li>
           </ul>
