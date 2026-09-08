@@ -69,6 +69,20 @@
 발송 수단이 없어도 제출은 정상 저장되고, 알림 내용은 `notification_log` 테이블에 쌓여
 대시보드 설정 화면에서 확인할 수 있습니다. **제출 기록이 유실되지는 않습니다.**
 
+## 설정이 제대로 됐는지 확인하기
+
+배포 후 `/api/health` 를 열면 지금 무엇이 되고 무엇이 안 되는지 한눈에 나옵니다.
+
+```json
+{ "ready": true, "database": { "connected": true, "departments": 10 },
+  "auth": { "ceoPasswordSet": true, "loginPossible": true },
+  "nextStep": "설정 완료. 설문 링크를 공유하셔도 됩니다." }
+```
+
+`ready` 가 false 면 `nextStep` 에 다음 할 일이 적혀 있습니다. 공개 주소이므로 응답 내용,
+응답자, 응답 건수 같은 실제 데이터는 내보내지 않고 "연결됐는가 / 등록됐는가" 수준의
+사실만 돌려줍니다.
+
 ## 배포
 
 1. Vercel에 이 저장소를 연결합니다.
