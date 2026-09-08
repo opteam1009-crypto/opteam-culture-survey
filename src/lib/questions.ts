@@ -194,11 +194,19 @@ export const VISIBILITY_OPTIONS = [
     value: "both",
     title: "대표이사 + 인사책임자",
     hint: "두 분 모두 이 응답을 열람합니다.",
+    lock: false,
   },
   {
     value: "ceo_only",
-    title: "🔒 대표이사만 열람",
+    title: "대표이사만 열람",
     hint: "인사책임자는 이 응답을 볼 수 없습니다.",
+    lock: true,
+  },
+  {
+    value: "hr_only",
+    title: "인사책임자만 열람",
+    hint: "대표이사는 이 응답을 볼 수 없습니다.",
+    lock: true,
   },
 ];
 

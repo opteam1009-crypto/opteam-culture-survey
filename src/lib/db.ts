@@ -158,6 +158,8 @@ async function runMigrations(): Promise<void> {
       -- 근속기간은 설문에서 뺐다. 되살릴 때를 위해 컬럼만 남겨두며 항상 null 이다.
       tenure          text,
       risk_level      int not null default 0,
+      -- 확인용으로 만든 예시 응답 표시. 한 번에 지울 수 있게 해두는 것이 목적이다.
+      is_demo         boolean not null default false,
       overall_score   numeric(5,2),
       section_scores  jsonb not null default '{}'::jsonb,
       submitted_at    timestamptz not null default now(),
@@ -189,12 +191,14 @@ async function runMigrations(): Promise<void> {
   // 기존 배포에 이미 테이블이 있는 경우를 위한 증분 반영.
   await q`alter table survey_responses add column if not exists tenure text`;
   await q`alter table survey_responses add column if not exists risk_level int not null default 0`;
+  await q`alter table survey_responses add column if not exists is_demo boolean not null default false`;
   await q`alter table survey_questions add column if not exists options jsonb`;
   await q`alter table survey_questions add column if not exists scored boolean not null default true`;
   await q`alter table survey_questions drop constraint if exists survey_questions_qtype_check`;
 
   await q`create index if not exists survey_responses_period_idx on survey_responses (period)`;
   await q`create index if not exists survey_responses_risk_idx on survey_responses (risk_level desc)`;
+  await q`create index if not exists survey_responses_demo_idx on survey_responses (is_demo)`;
   await q`create index if not exists survey_responses_dept_idx on survey_responses (department_id)`;
   await q`create index if not exists survey_responses_submitted_idx on survey_responses (submitted_at desc)`;
   await q`create index if not exists survey_answers_response_idx on survey_answers (response_id)`;
@@ -253,4 +257,16 @@ async function syncQuestions(q: SqlFn) {
         active        = true`;
   }
   await q`update survey_questions set active = false where code <> all(${codes})`;
+}
+
+/**
+ * 태그드 템플릿으로 표현하기 어려운 질의(행 수가 가변인 대량 INSERT 등)를 위한 통로.
+ * 값은 반드시 params 로 넘겨야 하며 text 에 사용자 입력을 이어붙이면 안 됩니다.
+ */
+export async function rawQuery(
+  text: string,
+  params: unknown[] = [],
+): Promise<Record<string, any>[]> {
+  const result = await getPool().query(text, params as any[]);
+  return result.rows;
 }

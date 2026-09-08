@@ -8,9 +8,10 @@
 
 html,
 body {
-  background: #f6f7f9;
+  background: #f4f6fa;
   color: #111827;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 body {
@@ -20,21 +21,48 @@ body {
 
 @layer components {
   .card {
-    @apply rounded-xl border border-line bg-white shadow-sm;
+    @apply rounded-2xl border border-line bg-white;
+    box-shadow:
+      0 1px 2px rgba(16, 24, 40, 0.04),
+      0 8px 24px -12px rgba(16, 24, 40, 0.1);
   }
   .btn {
-    @apply inline-flex items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold transition;
+    @apply inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold transition;
   }
   .btn-primary {
-    @apply btn bg-brand text-white hover:bg-[#173c72] disabled:cursor-not-allowed disabled:opacity-50;
+    @apply btn bg-brand text-white shadow-sm hover:bg-[#173c72] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-brand;
   }
   .btn-ghost {
-    @apply btn border border-line bg-white text-ink hover:bg-gray-50;
+    @apply btn border border-line bg-white text-ink hover:border-gray-300 hover:bg-gray-50;
   }
   .field {
-    @apply w-full rounded-lg border border-line bg-white px-3 py-2.5 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/15;
+    @apply w-full rounded-xl border border-line bg-white px-3.5 py-3 text-sm outline-none transition
+           placeholder:text-gray-400 focus:border-brand focus:ring-4 focus:ring-brand/10;
   }
   .label {
-    @apply mb-1.5 block text-sm font-semibold text-ink;
+    @apply mb-2 block text-sm font-semibold text-ink;
+  }
+  /* 설문 문항 사이 구분선 */
+  .q-divider > * + * {
+    @apply border-t border-line/70;
+  }
+}
+
+/* 선택지를 고를 때의 가벼운 반응 */
+@keyframes pop {
+  0% { transform: scale(0.94); }
+  60% { transform: scale(1.03); }
+  100% { transform: scale(1); }
+}
+.animate-pop {
+  animation: pop 180ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-pop {
+    animation: none;
+  }
+  * {
+    transition-duration: 0.01ms !important;
   }
 }

@@ -5,6 +5,7 @@ import { loadDepartments } from "@/lib/queries";
 import { formatDateTime } from "@/lib/period";
 import { ANSWERABLE_REQUIRED, QUESTIONS, TEXT_QUESTIONS } from "@/lib/questions";
 import DepartmentManager from "@/components/DepartmentManager";
+import DemoDataPanel from "@/components/DemoDataPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +31,11 @@ export default async function SettingsPage() {
      order by created_at desc
      limit 10
   `) as NotificationRow[];
+
+  const demoRows = (await sql()`
+    select count(*)::int as n from survey_responses where is_demo = true
+  `) as { n: number }[];
+  const demoCount = demoRows[0]?.n ?? 0;
 
   const mailMode = process.env.RESEND_API_KEY
     ? "Resend"
@@ -103,6 +109,13 @@ export default async function SettingsPage() {
             ))}
           </ul>
         )}
+      </section>
+
+      <section className="card p-6">
+        <h2 className="text-base font-bold">예시 데이터</h2>
+        <div className="mt-1">
+          <DemoDataPanel demoCount={demoCount} />
+        </div>
       </section>
 
       <section className="card p-6">

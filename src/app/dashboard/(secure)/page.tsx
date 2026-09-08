@@ -68,8 +68,16 @@ export default async function DashboardPage({
     return <EmptyState role={ROLE_LABEL[session.role]} />;
   }
 
+  const demoCount = all.filter((r) => r.is_demo).length;
+
   return (
     <div className="space-y-6">
+      {demoCount > 0 && (
+        <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <b>확인용 예시 데이터 {demoCount}건이 아래 숫자에 포함되어 있습니다.</b> 실제 응답이
+          아닙니다. 설정 화면에서 한 번에 삭제할 수 있습니다.
+        </p>
+      )}
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold">{formatPeriod(period)} 진단 현황</h1>

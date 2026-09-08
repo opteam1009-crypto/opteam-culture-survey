@@ -10,6 +10,8 @@ const config: Config = {
         line: "#e5e7eb",
         brand: "#1f4d8f",
         brandSoft: "#eef3fb",
+        brandTint: "#f7faff",
+        accent: "#2a78d6",
       },
     },
   },

@@ -18,6 +18,7 @@ export interface ResponseRow {
   department_name: string;
   visibility: string;
   risk_level: number;
+  is_demo: boolean;
   overall_score: number | null;
   section_scores: Record<string, number>;
   submitted_at: string;
@@ -40,7 +41,7 @@ export async function loadVisibleResponses(role: Role): Promise<ResponseRow[]> {
   await ensureSchema();
   const rows = (await sql()`
     select id, period, respondent_name, department_id, department_name, visibility,
-           risk_level, overall_score, section_scores, submitted_at
+           risk_level, is_demo, overall_score, section_scores, submitted_at
       from survey_responses
      where visibility = any(${VISIBLE_TO[role]})
      order by submitted_at desc
@@ -240,7 +241,7 @@ export async function loadResponseDetail(
   await ensureSchema();
   const rows = (await sql()`
     select id, period, respondent_name, department_id, department_name, visibility,
-           risk_level, overall_score, section_scores, submitted_at
+           risk_level, is_demo, overall_score, section_scores, submitted_at
       from survey_responses
      where id = ${id}::uuid
        and visibility = any(${VISIBLE_TO[role]})
