@@ -46,19 +46,17 @@ export function formatDateTime(value: string | Date): string {
 }
 
 /**
- * 설문이 묻는 "지난 한 달"이 실제로 어느 달인지 계산합니다.
- * 9월에 제출하는 회차는 8월을 평가합니다. 회차 이름과 평가 대상이 다르므로
- * 응답자가 헷갈리지 않도록 화면에 직접 적어줍니다.
+ * 설문이 평가하는 달. 월말에 그 달을 돌아보며 답하는 방식이므로
+ * 회차 이름과 평가 대상이 같은 달입니다(9월 설문 = 9월 평가).
  */
 export function targetMonthLabel(period: string): string {
-  return formatPeriod(previousPeriod(period));
+  return formatPeriod(period);
 }
 
-/** '2026년 8월 1일 ~ 8월 31일' */
+/** '2026년 9월 1일 ~ 9월 30일' */
 export function targetRangeLabel(period: string): string {
-  const prev = previousPeriod(period);
-  const [y, m] = prev.split("-").map(Number);
-  if (!y || !m) return formatPeriod(prev);
+  const [y, m] = period.split("-").map(Number);
+  if (!y || !m) return formatPeriod(period);
   const lastDay = new Date(Date.UTC(y, m, 0)).getUTCDate();
   return `${y}년 ${m}월 1일 ~ ${m}월 ${lastDay}일`;
 }
