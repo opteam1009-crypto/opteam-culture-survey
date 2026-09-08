@@ -155,6 +155,7 @@ async function runMigrations(): Promise<void> {
       department_id   int references departments(id) on delete set null,
       department_name text not null,
       visibility      text not null check (visibility in ('both','ceo_only','hr_only')),
+      -- 근속기간은 설문에서 뺐다. 되살릴 때를 위해 컬럼만 남겨두며 항상 null 이다.
       tenure          text,
       risk_level      int not null default 0,
       overall_score   numeric(5,2),

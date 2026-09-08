@@ -17,7 +17,6 @@ export interface ResponseRow {
   department_id: number | null;
   department_name: string;
   visibility: string;
-  tenure: string | null;
   risk_level: number;
   overall_score: number | null;
   section_scores: Record<string, number>;
@@ -41,7 +40,7 @@ export async function loadVisibleResponses(role: Role): Promise<ResponseRow[]> {
   await ensureSchema();
   const rows = (await sql()`
     select id, period, respondent_name, department_id, department_name, visibility,
-           tenure, risk_level, overall_score, section_scores, submitted_at
+           risk_level, overall_score, section_scores, submitted_at
       from survey_responses
      where visibility = any(${VISIBLE_TO[role]})
      order by submitted_at desc
@@ -241,7 +240,7 @@ export async function loadResponseDetail(
   await ensureSchema();
   const rows = (await sql()`
     select id, period, respondent_name, department_id, department_name, visibility,
-           tenure, risk_level, overall_score, section_scores, submitted_at
+           risk_level, overall_score, section_scores, submitted_at
       from survey_responses
      where id = ${id}::uuid
        and visibility = any(${VISIBLE_TO[role]})
@@ -269,27 +268,6 @@ function roundOrNull(value: number | null): number | null {
 }
 
 // ── 리스크 / 면담 / 근속 ────────────────────────────────────────────────
-
-export interface TenureSummary {
-  tenure: string;
-  count: number;
-  overall: number | null;
-}
-
-export function summarizeByTenure(rows: ResponseRow[]): TenureSummary[] {
-  const byTenure = new Map<string, ResponseRow[]>();
-  for (const row of rows) {
-    const key = row.tenure ?? "미기재";
-    const bucket = byTenure.get(key);
-    if (bucket) bucket.push(row);
-    else byTenure.set(key, [row]);
-  }
-  return [...byTenure.entries()].map(([tenure, group]) => ({
-    tenure,
-    count: group.length,
-    overall: roundOrNull(meanOf(group.map((r) => r.overall_score ?? NaN))),
-  }));
-}
 
 export interface RiskBreakdown {
   code: string;
@@ -339,7 +317,6 @@ export interface InterviewRequest {
   responseId: string;
   name: string;
   department: string;
-  tenure: string | null;
   visibility: string;
   riskLevel: number;
   first: string;
@@ -355,7 +332,7 @@ export async function loadInterviewRequests(
 ): Promise<InterviewRequest[]> {
   await ensureSchema();
   const rows = (await sql()`
-    select r.id, r.respondent_name, r.department_name, r.tenure, r.visibility,
+    select r.id, r.respondent_name, r.department_name, r.visibility,
            r.risk_level, r.submitted_at, a.question_code, a.value_text
       from survey_responses r
       join survey_answers a on a.response_id = r.id
@@ -368,7 +345,6 @@ export async function loadInterviewRequests(
     id: string;
     respondent_name: string;
     department_name: string;
-    tenure: string | null;
     visibility: string;
     risk_level: number;
     submitted_at: string;
@@ -384,7 +360,6 @@ export async function loadInterviewRequests(
         responseId: row.id,
         name: row.respondent_name,
         department: row.department_name,
-        tenure: row.tenure,
         visibility: row.visibility,
         riskLevel: Number(row.risk_level ?? 0),
         first: "",

@@ -1,12 +1,7 @@
 import { NextResponse } from "next/server";
 import { ensureSchema, sql } from "@/lib/db";
 import { currentPeriod } from "@/lib/period";
-import {
-  QUESTIONS,
-  TENURE_OPTIONS,
-  VISIBILITY_OPTIONS,
-  severityOf,
-} from "@/lib/questions";
+import { QUESTIONS, VISIBILITY_OPTIONS, severityOf } from "@/lib/questions";
 import { computeScores } from "@/lib/score";
 import { sendSubmissionNotification } from "@/lib/mail";
 
@@ -29,16 +24,12 @@ export async function POST(request: Request) {
   const name = typeof body.name === "string" ? body.name.trim() : "";
   const departmentId = Number(body.departmentId);
   const visibility = typeof body.visibility === "string" ? body.visibility : "";
-  const tenure = typeof body.tenure === "string" ? body.tenure.trim() : "";
 
   if (!name || name.length > MAX_NAME) {
     return NextResponse.json({ error: "성명을 확인해 주세요." }, { status: 400 });
   }
   if (!Number.isInteger(departmentId) || departmentId <= 0) {
     return NextResponse.json({ error: "소속 부서를 선택해 주세요." }, { status: 400 });
-  }
-  if (!TENURE_OPTIONS.includes(tenure)) {
-    return NextResponse.json({ error: "근속기간을 선택해 주세요." }, { status: 400 });
   }
   if (!VALID_VISIBILITY.has(visibility)) {
     return NextResponse.json({ error: "열람 범위를 선택해 주세요." }, { status: 400 });
@@ -108,10 +99,10 @@ export async function POST(request: Request) {
 
     const inserted = (await q`
       insert into survey_responses
-        (period, respondent_name, department_id, department_name, visibility, tenure,
+        (period, respondent_name, department_id, department_name, visibility,
          risk_level, overall_score, section_scores, user_agent)
       values
-        (${period}, ${name}, ${department.id}, ${department.name}, ${visibility}, ${tenure},
+        (${period}, ${name}, ${department.id}, ${department.name}, ${visibility},
          ${riskLevel}, ${overall}, ${JSON.stringify(sections)}::jsonb, ${userAgent})
       returning id, submitted_at
     `) as { id: string; submitted_at: string }[];

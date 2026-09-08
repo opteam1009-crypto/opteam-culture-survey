@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ROLE_LABEL, readSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { currentPeriod, formatDateTime, formatPeriod, previousPeriod } from "@/lib/period";
-import { SCORED_SECTION_CODES, SECTIONS, TENURE_OPTIONS } from "@/lib/questions";
+import { SCORED_SECTION_CODES, SECTIONS } from "@/lib/questions";
 import { formatDelta, formatScore, scoreTone } from "@/lib/score";
 import {
   loadFlaggedAnswers,
@@ -11,7 +11,6 @@ import {
   loadVisibleResponses,
   summarizeByDepartment,
   summarizeByPeriod,
-  summarizeByTenure,
   summarizeSections,
 } from "@/lib/queries";
 import RiskPanel from "@/components/RiskPanel";
@@ -59,7 +58,6 @@ export default async function DashboardPage({
   const questions = await loadQuestionAverages(session.role, period);
   const riskBreakdown = await loadRiskBreakdown(session.role, period);
   const flagged = await loadFlaggedAnswers(session.role, period);
-  const tenures = summarizeByTenure(rows);
   const weakest = [...questions].sort((a, b) => (a.score ?? 0) - (b.score ?? 0)).slice(0, 5);
   const strongest = [...questions].sort((a, b) => (b.score ?? 0) - (a.score ?? 0)).slice(0, 3);
   const lowestSection = [...sectionScores]
@@ -187,27 +185,6 @@ export default async function DashboardPage({
       </section>
 
       <RiskPanel breakdown={riskBreakdown} flagged={flagged} />
-
-      <section className="card p-6">
-        <h2 className="text-base font-bold">근속기간별 종합 점수</h2>
-        <p className="mb-4 mt-1 text-sm text-muted">
-          입사 초기와 장기 근속 구간의 체감이 갈리는지 확인합니다.
-        </p>
-        <BarList
-          showTone
-          items={TENURE_OPTIONS.filter((t) => tenures.some((x) => x.tenure === t))
-            .concat(tenures.some((x) => x.tenure === "미기재") ? ["미기재"] : [])
-            .map((label) => {
-              const hit = tenures.find((x) => x.tenure === label);
-              return {
-                key: label,
-                label,
-                value: hit?.overall ?? null,
-                count: hit?.count ?? 0,
-              };
-            })}
-        />
-      </section>
 
       {/* ── 문항 우선순위 ────────────────────────────────── */}
       <div className="grid gap-6 lg:grid-cols-2">

@@ -189,14 +189,6 @@ export const QUESTIONS: Question[] = [
     prompt: "면담 주제", placeholder: "간단히 적어주세요 (선택)" },
 ];
 
-export const TENURE_OPTIONS = [
-  "3개월 미만",
-  "3~6개월",
-  "6개월~1년",
-  "1~3년",
-  "3년 이상",
-];
-
 export const VISIBILITY_OPTIONS = [
   {
     value: "both",

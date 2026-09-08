@@ -60,12 +60,11 @@ export default async function InterviewsPage({
       ) : (
         <section className="card overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[860px] text-sm">
+            <table className="w-full min-w-[780px] text-sm">
               <thead>
                 <tr className="border-b border-line bg-gray-50 text-left text-xs text-muted">
                   <th className="px-4 py-2.5 font-semibold">이름</th>
                   <th className="px-4 py-2.5 font-semibold">부서</th>
-                  <th className="px-4 py-2.5 font-semibold">근속</th>
                   <th className="px-4 py-2.5 font-semibold">1순위 일시</th>
                   <th className="px-4 py-2.5 font-semibold">2순위 일시</th>
                   <th className="px-4 py-2.5 font-semibold">면담 주제</th>
@@ -96,7 +95,6 @@ export default async function InterviewsPage({
                       )}
                     </td>
                     <td className="px-4 py-3 text-muted">{item.department}</td>
-                    <td className="px-4 py-3 text-xs text-muted">{item.tenure ?? "—"}</td>
                     <td className="px-4 py-3">{item.first || "—"}</td>
                     <td className="px-4 py-3 text-muted">{item.second || "—"}</td>
                     <td className="px-4 py-3 text-muted">{item.topic || "—"}</td>

@@ -6,7 +6,6 @@ import {
   ANSWERABLE_REQUIRED,
   QUESTION_NUMBER,
   SECTIONS,
-  TENURE_OPTIONS,
   VISIBILITY_OPTIONS,
   type Question,
   questionsOfSection,
@@ -27,7 +26,6 @@ export default function SurveyForm({ departments, periodLabel }: Props) {
   const router = useRouter();
   const [name, setName] = useState("");
   const [departmentId, setDepartmentId] = useState("");
-  const [tenure, setTenure] = useState("");
   const [visibility, setVisibility] = useState("both");
   const [choices, setChoices] = useState<Record<string, number>>({});
   const [texts, setTexts] = useState<Record<string, string>>({});
@@ -45,7 +43,7 @@ export default function SurveyForm({ departments, periodLabel }: Props) {
   const answered = ANSWERABLE_REQUIRED.filter((q) => choices[q.code]).length;
   const progress = Math.round((answered / ANSWERABLE_REQUIRED.length) * 100);
 
-  const missingProfile = !name.trim() || !departmentId || !tenure;
+  const missingProfile = !name.trim() || !departmentId;
   const firstUnanswered = ANSWERABLE_REQUIRED.find((q) => !choices[q.code]);
   const firstEmptyText = requiredTexts.find((q) => !(texts[q.code] ?? "").trim());
 
@@ -55,7 +53,7 @@ export default function SurveyForm({ departments, periodLabel }: Props) {
     setError(null);
 
     if (missingProfile) {
-      setError("성명·소속 부서·근속기간을 모두 입력해 주세요.");
+      setError("성명과 소속 부서를 입력해 주세요.");
       scrollTo("profile-section");
       return;
     }
@@ -78,7 +76,6 @@ export default function SurveyForm({ departments, periodLabel }: Props) {
         body: JSON.stringify({
           name: name.trim(),
           departmentId: Number(departmentId),
-          tenure,
           visibility,
           choices,
           texts,
@@ -136,23 +133,6 @@ export default function SurveyForm({ departments, periodLabel }: Props) {
             </select>
             {touched && !departmentId && <FieldError>소속 부서를 선택해 주세요.</FieldError>}
           </div>
-        </div>
-
-        <div className="mt-6">
-          <span className="label">
-            근속기간 <span className="text-red-600">*</span>
-          </span>
-          <div className="flex flex-wrap gap-2">
-            {TENURE_OPTIONS.map((option) => (
-              <Chip
-                key={option}
-                label={option}
-                active={tenure === option}
-                onSelect={() => setTenure(option)}
-              />
-            ))}
-          </div>
-          {touched && !tenure && <FieldError>근속기간을 선택해 주세요.</FieldError>}
         </div>
 
         <div className="mt-6">
@@ -287,28 +267,6 @@ function FieldError({ children }: { children: React.ReactNode }) {
   return <p className="mt-1.5 text-xs font-medium text-red-600">{children}</p>;
 }
 
-function Chip({
-  label,
-  active,
-  onSelect,
-}: {
-  label: string;
-  active: boolean;
-  onSelect: () => void;
-}) {
-  return (
-    <label
-      className={`cursor-pointer rounded-full border px-3.5 py-1.5 text-sm transition ${
-        active
-          ? "border-brand bg-brand font-semibold text-white"
-          : "border-line bg-white hover:border-brand/40 hover:bg-brandSoft"
-      }`}
-    >
-      <input type="radio" className="sr-only" checked={active} onChange={onSelect} />
-      {label}
-    </label>
-  );
-}
 
 function InterviewNotice() {
   return (
