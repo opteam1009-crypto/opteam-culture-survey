@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { ROLE_LABEL, readSession } from "@/lib/auth";
 import { formatDateTime, formatPeriod } from "@/lib/period";
 import { loadInterviewRequests, loadVisibleResponses } from "@/lib/queries";
-import { parseSlot } from "@/lib/schedule";
+import { WEEKDAY_LABELS, parseSlot } from "@/lib/schedule";
 import InterviewCalendar, { type CalendarEntry } from "@/components/InterviewCalendar";
 
 export const dynamic = "force-dynamic";
@@ -126,8 +126,8 @@ export default async function InterviewsPage({
                       )}
                     </td>
                     <td className="px-4 py-3 text-muted">{item.department}</td>
-                    <td className="px-4 py-3">{item.first || "—"}</td>
-                    <td className="px-4 py-3 text-muted">{item.second || "—"}</td>
+                    <td className="px-4 py-3">{formatSlot(item.first, period)}</td>
+                    <td className="px-4 py-3 text-muted">{formatSlot(item.second, period)}</td>
                     <td className="px-4 py-3 text-muted">{item.topic || "—"}</td>
                     <td className="px-4 py-3 text-xs text-muted">
                       {item.visibility === "ceo_only"
@@ -164,4 +164,19 @@ function Tab({ label, active, href }: { label: string; active: boolean; href: st
       {label}
     </Link>
   );
+}
+
+/** 저장된 값이 'YYYY-MM-DD HH:MM' 이면 읽기 좋게, 옛 자유 입력이면 원문 그대로. */
+function formatSlot(value: string, period: string): string {
+  if (!value) return "—";
+  const parsed = parseSlot(value, period);
+  if (!parsed.date) return value;
+  const [, mo, d] = parsed.date.split("-").map(Number);
+  const weekday = parsed.weekday === null ? "" : ` (${WEEKDAY_LABELS[parsed.weekday]})`;
+  const time = value.match(/(\d{2}):(\d{2})$/);
+  if (!time) return `${mo}월 ${d}일${weekday}`;
+  const hour = Number(time[1]);
+  const label = hour < 12 ? "오전" : "오후";
+  const display = hour <= 12 ? hour : hour - 12;
+  return `${mo}월 ${d}일${weekday} ${label} ${display}:${time[2]}`;
 }

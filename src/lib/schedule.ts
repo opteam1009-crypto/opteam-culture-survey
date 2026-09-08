@@ -55,6 +55,21 @@ function pad(n: number): string {
  */
 export function parseSlot(raw: string, referencePeriod: string): ParsedSlot {
   const text = (raw ?? "").trim();
+
+  // 설문에서 달력·시간 선택으로 받은 값은 형식이 정해져 있어 그대로 읽습니다.
+  const exact = text.match(/^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})$/);
+  if (exact) {
+    const [, y, mo, d, hh, mm] = exact;
+    const probe = new Date(Date.UTC(Number(y), Number(mo) - 1, Number(d)));
+    const hour = Number(hh);
+    return {
+      date: `${y}-${mo}-${d}`,
+      weekday: probe.getUTCDay(),
+      band: hour >= 18 ? "evening" : hour >= 12 ? "afternoon" : "morning",
+      raw: `${Number(mo)}월 ${Number(d)}일 ${hour < 12 ? "오전" : "오후"} ${hour <= 12 ? hour : hour - 12}:${mm}`,
+    };
+  }
+
   const band = bandOf(text);
   const weekday = weekdayOf(text);
   const [refYear, refMonth] = referencePeriod.split("-").map(Number);

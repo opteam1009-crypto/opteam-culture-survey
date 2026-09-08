@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import { ensureSchema, sql } from "@/lib/db";
 import { currentPeriod } from "@/lib/period";
-import { QUESTIONS, VISIBILITY_OPTIONS, severityOf } from "@/lib/questions";
+import {
+  QUESTIONS,
+  VISIBILITY_OPTIONS,
+  isValidInterviewSlot,
+  severityOf,
+} from "@/lib/questions";
 import { computeScores } from "@/lib/score";
 import { sendSubmissionNotification } from "@/lib/mail";
 
@@ -42,6 +47,28 @@ export async function POST(request: Request) {
   const texts: Record<string, string> = {};
 
   for (const question of QUESTIONS) {
+    if (question.type === "datetime") {
+      const value = rawTexts[question.code];
+      const text = typeof value === "string" ? value.trim() : "";
+      if (!text) {
+        if (question.required) {
+          return NextResponse.json(
+            { error: `"${question.prompt}"의 날짜와 시간을 선택해 주세요.` },
+            { status: 400 },
+          );
+        }
+        continue;
+      }
+      if (!isValidInterviewSlot(text)) {
+        return NextResponse.json(
+          { error: `"${question.prompt}"의 날짜 또는 시간이 올바르지 않습니다.` },
+          { status: 400 },
+        );
+      }
+      texts[question.code] = text;
+      continue;
+    }
+
     if (question.type === "text") {
       const value = rawTexts[question.code];
       const text = typeof value === "string" ? value.trim().slice(0, MAX_TEXT) : "";

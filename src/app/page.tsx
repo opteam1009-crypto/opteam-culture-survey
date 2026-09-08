@@ -39,14 +39,14 @@ export default async function SurveyPage() {
               대시보드
             </Link>
           </div>
-          <p className="mt-5 text-sm text-white/75">지난 한 달, 회사생활 어떠셨나요?</p>
+          <p className="mt-5 text-[15px] text-white/85">지난 한 달, 회사생활 어떠셨나요?</p>
           <h1 className="mt-1.5 text-[26px] font-bold leading-tight sm:text-[30px]">
             {periodLabel} 조직 컨디션 설문
           </h1>
-          <p className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-white/15 px-3 py-1.5 text-xs font-semibold">
+          <p className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-white/20 px-3.5 py-2 text-sm font-bold">
             평가 대상 기간 · {targetRangeLabel(period)}
           </p>
-          <ul className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-xs text-white/70">
+          <ul className="mt-3.5 flex flex-wrap gap-x-6 gap-y-1.5 text-sm text-white/85">
             <li>소요시간 · 약 3~5분</li>
             <li>열람 · 본인이 선택한 열람자만</li>
           </ul>
@@ -72,8 +72,8 @@ export default async function SurveyPage() {
 
 function Notice({ icon, children }: { icon: string; children: React.ReactNode }) {
   return (
-    <p className="flex gap-3 px-7 py-4 text-[13px] leading-relaxed text-muted">
-      <span aria-hidden className="shrink-0 text-base leading-none">
+    <p className="flex gap-3 px-7 py-4 text-[15px] leading-[1.75] text-ink/80">
+      <span aria-hidden className="shrink-0 text-lg leading-none">
         {icon}
       </span>
       <span>{children}</span>

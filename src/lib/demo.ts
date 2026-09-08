@@ -90,11 +90,12 @@ const WEEKDAY_SLOTS = [
 ];
 
 function datedSlot(period: string, rand: () => number): string {
-  const [, month] = period.split("-").map(Number);
-  const day = 2 + Math.floor(rand() * 26);
-  const band = ["오전", "오후", "저녁"][Math.floor(rand() * 3)];
-  const hour = band === "오전" ? 10 : band === "오후" ? 14 + Math.floor(rand() * 3) : 18;
-  return `${month}월 ${day}일 ${band} ${hour}시 이후`;
+  const [year, month] = period.split("-").map(Number);
+  const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  const day = 2 + Math.floor(rand() * (lastDay - 2));
+  const hour = 9 + Math.floor(rand() * 10);
+  const minute = rand() < 0.5 ? "00" : "30";
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")} ${String(hour).padStart(2, "0")}:${minute}`;
 }
 
 const TOPICS = ["", "", "업무 분장", "커리어 방향", "", "업무량 조정", ""];
@@ -167,8 +168,10 @@ export function buildDemoResponses(seed = 20260908): DemoResponse[] {
       numeric.risk_2 = rand() < riskChance * 0.45 ? (rand() < 0.6 ? 2 : 3) : 1;
       numeric.risk_3 = rand() < riskChance * 0.8 ? (rand() < 0.6 ? 2 : 3) : 1;
 
+      // 이제 설문이 달력으로 받으므로 예시도 같은 형식으로 만듭니다.
+      // 옛 자유 입력 응답이 섞여도 캘린더가 처리하는지 보려고 일부만 남겨둡니다.
       const pickSlot = () =>
-        rand() < 0.6
+        rand() < 0.85
           ? datedSlot(period, rand)
           : WEEKDAY_SLOTS[Math.floor(rand() * WEEKDAY_SLOTS.length)];
 

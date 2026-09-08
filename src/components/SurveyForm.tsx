@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ANSWERABLE_REQUIRED,
+  INTERVIEW_TIME_SLOTS,
   QUESTION_NUMBER,
   SECTIONS,
   VISIBILITY_OPTIONS,
@@ -64,7 +65,7 @@ export default function SurveyForm({ departments, periodLabel }: Props) {
       return;
     }
     if (firstEmptyText) {
-      setError("1:1 면담 희망 일시를 입력해 주세요.");
+      setError("1:1 면담 희망 일시의 날짜와 시간을 모두 선택해 주세요.");
       scrollTo(`q-${firstEmptyText.code}`);
       return;
     }
@@ -110,8 +111,8 @@ export default function SurveyForm({ departments, periodLabel }: Props) {
         {/* ── 응답자 정보 ──────────────────────────────────── */}
         <section id="profile-section" className="card mb-4 scroll-mt-6 overflow-hidden">
           <div className="border-b border-line bg-brandTint px-6 py-4">
-            <h2 className="text-[15px] font-bold">응답자 정보</h2>
-            <p className="mt-0.5 text-xs text-muted">
+            <h2 className="text-[15px] font-bold leading-7">응답자 정보</h2>
+            <p className="mt-1 text-sm text-ink/70">
               집계와 후속 면담을 위해 실명으로 받습니다.
             </p>
           </div>
@@ -189,14 +190,14 @@ export default function SurveyForm({ departments, periodLabel }: Props) {
                         </span>
                         {active && <CheckDot />}
                       </span>
-                      <span className="mt-1.5 block text-xs leading-relaxed text-muted">
+                      <span className="mt-1.5 block text-[13px] leading-relaxed text-ink/70">
                         {option.hint}
                       </span>
                     </label>
                   );
                 })}
               </div>
-              <p className="mt-3 rounded-xl bg-gray-50 px-4 py-3 text-xs leading-relaxed text-muted">
+              <p className="mt-3 rounded-xl bg-gray-50 px-4 py-3.5 text-[14px] leading-[1.75] text-ink/75">
                 인사책임자를 거치지 않고 대표이사에게 직접 전달하고 싶다면{" "}
                 <b className="text-ink">「대표이사만 열람」</b>을, 반대로 대표이사에게는 알리지 않고
                 인사책임자와만 이야기하고 싶다면 <b className="text-ink">「인사책임자만 열람」</b>을
@@ -211,9 +212,13 @@ export default function SurveyForm({ departments, periodLabel }: Props) {
           const questions = questionsOfSection(section.code);
           if (questions.length === 0) return null;
 
-          const options = questions.filter((q) => q.type !== "text");
-          const done = options.filter((q) => choices[q.code]).length;
-          const complete = options.length > 0 && done === options.length;
+          const options = questions.filter((q) => q.type === "scale5" || q.type === "choice");
+          const dateQuestions = questions.filter((q) => q.type === "datetime" && q.required);
+          const done =
+            options.filter((q) => choices[q.code]).length +
+            dateQuestions.filter((q) => (texts[q.code] ?? "").trim()).length;
+          const total = options.length + dateQuestions.length;
+          const complete = total > 0 && done === total;
           const showScale = questions.some((q) => q.type === "scale5");
           const labels = scaleLabelsFor(section.code);
 
@@ -224,33 +229,34 @@ export default function SurveyForm({ departments, periodLabel }: Props) {
                   complete ? "bg-emerald-50/60" : "bg-brandTint"
                 }`}
               >
+                {/* 배지 높이(28px)와 제목의 첫 줄 높이를 맞춰야 위아래로 뜨지 않습니다. */}
                 <span
-                  className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-bold tabular-nums ${
+                  className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-bold tabular-nums ${
                     complete ? "bg-emerald-600 text-white" : "bg-brand text-white"
                   }`}
                 >
                   {complete ? "✓" : section.index}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <h2 className="text-[15px] font-bold">{section.label}</h2>
+                  <h2 className="text-[15px] font-bold leading-7">{section.label}</h2>
                   {section.note && (
-                    <p className="mt-0.5 text-xs text-muted">{section.note}</p>
+                    <p className="mt-0.5 text-sm leading-relaxed text-ink/70">{section.note}</p>
                   )}
                 </div>
-                {options.length > 0 && (
+                {total > 0 && (
                   <span
-                    className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold tabular-nums ${
+                    className={`flex h-7 shrink-0 items-center rounded-full px-2.5 text-xs font-bold tabular-nums ${
                       complete ? "bg-emerald-100 text-emerald-800" : "bg-white text-muted"
                     }`}
                   >
-                    {done}/{options.length}
+                    {done}/{total}
                   </span>
                 )}
               </header>
 
               <div className="px-6 pb-5 pt-1">
                 {showScale && (
-                  <div className="mt-4 flex flex-wrap gap-x-3.5 gap-y-1 rounded-xl bg-gray-50 px-4 py-2.5 text-[11px] text-muted">
+                  <div className="mt-4 flex flex-wrap gap-x-5 gap-y-1.5 rounded-xl bg-gray-50 px-4 py-3 text-[13px] text-ink/75">
                     {labels.map((l) => (
                       <span key={l.value}>
                         <b className="text-ink">{l.value}</b> {l.label}
@@ -263,7 +269,15 @@ export default function SurveyForm({ departments, periodLabel }: Props) {
 
                 <div className="q-divider">
                   {questions.map((question, questionIndex) =>
-                    question.type === "text" ? (
+                    question.type === "datetime" ? (
+                      <DateTimeRow
+                        key={question.code}
+                        question={question}
+                        value={texts[question.code] ?? ""}
+                        invalid={touched && question.required && !(texts[question.code] ?? "").trim()}
+                        onChange={(v) => setTexts((prev) => ({ ...prev, [question.code]: v }))}
+                      />
+                    ) : question.type === "text" ? (
                       <TextRow
                         key={question.code}
                         question={question}
@@ -314,7 +328,7 @@ export default function SurveyForm({ departments, periodLabel }: Props) {
             )}
             <div className="flex items-center gap-4">
               <div className="min-w-0 flex-1">
-                <div className="flex items-baseline justify-between text-xs">
+                <div className="flex items-baseline justify-between text-[13px]">
                   <span className="text-muted">
                     {periodLabel} · 필수 문항{" "}
                     <b className="text-ink tabular-nums">
@@ -378,7 +392,7 @@ function QuestionHead({
         {question.prompt}
       </p>
       {selected && (
-        <span className="rounded-full bg-brandSoft px-2 py-0.5 text-[11px] font-bold text-brand">
+        <span className="rounded-full bg-brandSoft px-2 py-0.5 text-xs font-bold text-brand">
           {selected}
         </span>
       )}
@@ -442,7 +456,7 @@ function ScaleRow({
         })}
       </div>
       {showAnchors && (
-        <div className="mt-1.5 flex justify-between text-[11px] text-muted">
+        <div className="mt-2 flex justify-between text-[13px] font-medium text-ink/70">
           <span>{labels[0]?.label}</span>
           <span>{labels[labels.length - 1]?.label}</span>
         </div>
@@ -501,7 +515,7 @@ function ChoiceRow({
                 {active && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
               </span>
               <span
-                className={`text-sm leading-snug ${active ? "font-semibold text-brand" : "text-ink"}`}
+                className={`text-[15px] leading-snug ${active ? "font-semibold text-brand" : "text-ink"}`}
               >
                 {option.label}
               </span>
@@ -582,18 +596,118 @@ function InterviewNotice() {
       <div className="rounded-xl border border-brand/15 bg-brandSoft px-4 py-3.5">
         <p className="text-sm font-bold text-brand">
           <span aria-hidden className="mr-1">🤝</span>
-          1:1 면담이 진행됩니다. 가능한 일시를 적어주세요.
+          1:1 면담이 진행됩니다. 가능한 일시를 선택해 주세요.
         </p>
-        <p className="mt-1 text-xs leading-relaxed text-ink/70">
+        <p className="mt-1.5 text-sm leading-relaxed text-ink/75">
           이번 설문 내용이나 별도의 고민에 대해 회사와 직접 이야기하는 자리입니다.
+        1순위와 2순위를 모두 골라주시면 일정을 잡기 수월합니다.
         </p>
       </div>
-      <p className="rounded-xl bg-gray-50 px-4 py-3 text-xs leading-relaxed text-muted">
+      <p className="rounded-xl bg-gray-50 px-4 py-3.5 text-[14px] leading-[1.75] text-ink/75">
         <span aria-hidden className="mr-1">🔒</span>
         면담 사실과 내용은 비밀이 보장되며, 면담으로 인한 불이익은 일절 없습니다. 위에서
         「대표이사만 열람」 또는 「인사책임자만 열람」을 선택하신 경우 면담도 해당 열람자와만
         진행됩니다.
       </p>
+    </div>
+  );
+}
+
+/**
+ * 면담 희망 일시. 예전에는 자유 입력이라 "화요일 오후" 처럼 날짜를 특정할 수 없는
+ * 답이 많았고, 그러면 캘린더에 놓을 수가 없습니다. 날짜는 달력으로, 시간은 30분
+ * 단위로 받아 'YYYY-MM-DD HH:MM' 로 저장합니다.
+ */
+function DateTimeRow({
+  question,
+  value,
+  invalid,
+  onChange,
+}: {
+  question: Question;
+  value: string;
+  invalid: boolean;
+  onChange: (value: string) => void;
+}) {
+  // 날짜와 시간을 각각 들고 있어야 합니다. 합쳐진 값 하나만 부모에 두면
+  // 날짜만 고른 순간 아직 미완성이라 빈 값이 되돌아와 입력이 지워집니다.
+  const [date, setDate] = useState(() => value.split(" ")[0] ?? "");
+  const [time, setTime] = useState(() => value.split(" ")[1] ?? "");
+
+  // 오늘부터 90일까지만 고를 수 있게 합니다.
+  const today = new Date();
+  const toKey = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const min = toKey(today);
+  const max = toKey(new Date(today.getTime() + 90 * 86400000));
+
+  const weekday = date
+    ? ["일", "월", "화", "수", "목", "금", "토"][new Date(`${date}T00:00:00`).getDay()]
+    : null;
+
+  function update(nextDate: string, nextTime: string) {
+    setDate(nextDate);
+    setTime(nextTime);
+    // 부모(제출 값)에는 둘 다 채워졌을 때만 완성된 값을 올립니다.
+    onChange(nextDate && nextTime ? `${nextDate} ${nextTime}` : "");
+  }
+
+  return (
+    <div id={`q-${question.code}`} className="scroll-mt-24 py-5">
+      <span className="block text-[15px] font-medium leading-relaxed text-ink">
+        {question.prompt}
+        <Required />
+      </span>
+
+      <div className="mt-2.5 grid gap-2.5 sm:grid-cols-2">
+        <div>
+          <label className="mb-1 block text-[13px] font-semibold text-ink/70" htmlFor={`date-${question.code}`}>
+            날짜
+          </label>
+          <input
+            id={`date-${question.code}`}
+            type="date"
+            className={`field ${invalid && !date ? "border-red-400 ring-4 ring-red-100" : ""}`}
+            value={date}
+            min={min}
+            max={max}
+            onChange={(e) => update(e.target.value, time)}
+          />
+          {weekday && (
+            <p className="mt-1 text-[13px] text-ink/60">
+              {weekday}요일
+              {weekday === "토" || weekday === "일" ? " · 주말입니다" : ""}
+            </p>
+          )}
+        </div>
+
+        <div>
+          <label className="mb-1 block text-[13px] font-semibold text-ink/70" htmlFor={`time-${question.code}`}>
+            시간
+          </label>
+          <select
+            id={`time-${question.code}`}
+            className={`field appearance-none bg-[length:16px] bg-[right_0.9rem_center] bg-no-repeat pr-10 ${
+              invalid && !time ? "border-red-400 ring-4 ring-red-100" : ""
+            }`}
+            style={{
+              backgroundImage:
+                "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%236b7280'%3E%3Cpath d='M4.2 6.2a.75.75 0 0 1 1.06 0L8 8.94l2.74-2.74a.75.75 0 1 1 1.06 1.06l-3.27 3.27a.75.75 0 0 1-1.06 0L4.2 7.26a.75.75 0 0 1 0-1.06z'/%3E%3C/svg%3E\")",
+            }}
+            value={time}
+            onChange={(e) => update(date, e.target.value)}
+          >
+            <option value="">시간을 선택해 주세요</option>
+            {INTERVIEW_TIME_SLOTS.map((slot) => (
+              <option key={slot.value} value={slot.value}>
+                {slot.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {invalid && <FieldError>날짜와 시간을 모두 선택해 주세요.</FieldError>}
     </div>
   );
 }

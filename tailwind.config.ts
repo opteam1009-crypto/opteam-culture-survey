@@ -19,7 +19,8 @@ const config: Config = {
       },
       colors: {
         ink: "#111827",
-        muted: "#6b7280",
+        muted: "#4b5563",
+        subtle: "#6b7280",
         line: "#e5e7eb",
         brand: "#1f4d8f",
         brandSoft: "#eef3fb",

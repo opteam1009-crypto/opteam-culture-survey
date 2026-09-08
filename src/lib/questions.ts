@@ -3,7 +3,7 @@
 // 문항을 바꿀 때 code 를 유지하면 과거 회차와 추이 비교가 이어집니다.
 // 문구만 고치는 것은 안전하고, 의미가 달라지면 새 code 를 부여하세요.
 
-export type QuestionType = "scale5" | "choice" | "text";
+export type QuestionType = "scale5" | "choice" | "text" | "datetime";
 
 export interface ChoiceOption {
   value: number;
@@ -181,10 +181,10 @@ export const QUESTIONS: Question[] = [
     placeholder: "이 항목은 선택사항입니다." },
 
   // ── 09 1:1 면담 일정 ──────────────────────────────────────
-  { code: "interview_first", sectionCode: "interview", type: "text", scored: false, required: true,
-    prompt: "1순위 일시", placeholder: "예: 8월 12일(수) 14시 이후" },
-  { code: "interview_second", sectionCode: "interview", type: "text", scored: false, required: true,
-    prompt: "2순위 일시", placeholder: "예: 8월 14일(금) 오전" },
+  { code: "interview_first", sectionCode: "interview", type: "datetime", scored: false, required: true,
+    prompt: "1순위 일시" },
+  { code: "interview_second", sectionCode: "interview", type: "datetime", scored: false, required: true,
+    prompt: "2순위 일시" },
   { code: "interview_topic", sectionCode: "interview", type: "text", scored: false, required: false,
     prompt: "면담 주제", placeholder: "간단히 적어주세요 (선택)" },
 ];
@@ -212,7 +212,36 @@ export const VISIBILITY_OPTIONS = [
 
 export const SCORED_QUESTIONS = QUESTIONS.filter((q) => q.scored);
 export const CHOICE_QUESTIONS = QUESTIONS.filter((q) => q.type === "choice");
-export const TEXT_QUESTIONS = QUESTIONS.filter((q) => q.type === "text");
+export const TEXT_QUESTIONS = QUESTIONS.filter(
+  (q) => q.type === "text" || q.type === "datetime",
+);
+export const DATETIME_QUESTIONS = QUESTIONS.filter((q) => q.type === "datetime");
+
+/** 면담 가능 시간대. 30분 단위로 09:00~19:00 를 제공합니다. */
+export const INTERVIEW_TIME_SLOTS = (() => {
+  const slots: { value: string; label: string }[] = [];
+  for (let minutes = 9 * 60; minutes <= 19 * 60; minutes += 30) {
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    const value = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+    const period = h < 12 ? "오전" : "오후";
+    const displayHour = h <= 12 ? h : h - 12;
+    slots.push({ value, label: `${period} ${displayHour}:${String(m).padStart(2, "0")}` });
+  }
+  return slots;
+})();
+
+const TIME_SLOT_VALUES = new Set(INTERVIEW_TIME_SLOTS.map((s) => s.value));
+
+/** 'YYYY-MM-DD HH:MM' 형식인지, 그리고 허용된 시간대인지 확인합니다. */
+export function isValidInterviewSlot(value: string): boolean {
+  const m = value.match(/^(\d{4})-(\d{2})-(\d{2}) (\d{2}:\d{2})$/);
+  if (!m) return false;
+  if (!TIME_SLOT_VALUES.has(m[4])) return false;
+  const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  const probe = new Date(Date.UTC(y, mo - 1, d));
+  return probe.getUTCFullYear() === y && probe.getUTCMonth() === mo - 1 && probe.getUTCDate() === d;
+}
 export const RISK_QUESTIONS = QUESTIONS.filter((q) => q.risk);
 export const REQUIRED_QUESTIONS = QUESTIONS.filter((q) => q.required);
 /** 척도·선택형 등 보기를 고르는 필수 문항 (진행률 계산 기준) */

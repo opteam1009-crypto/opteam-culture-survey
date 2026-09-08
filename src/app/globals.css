@@ -22,6 +22,16 @@ body {
   letter-spacing: -0.01em;
 }
 
+/*
+  한글은 기본값(break-word)으로 두면 "불이익" 이 "불이 / 익" 처럼 단어 한가운데서
+  잘립니다. keep-all 로 어절 단위로만 넘기고, 넘칠 여지가 없는 긴 URL 등은
+  overflow-wrap 으로 처리합니다.
+*/
+:where(p, li, h1, h2, h3, h4, label, span, td, th, dd, dt, summary, a, button, div) {
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
 @layer components {
   .card {
     @apply rounded-2xl border border-line bg-white;
