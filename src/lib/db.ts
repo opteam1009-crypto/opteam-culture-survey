@@ -75,6 +75,22 @@ export function sql(): SqlFn {
 }
 
 const DEFAULT_DEPARTMENTS = [
+  "기획운영팀",
+  "회계팀",
+  "운영관리팀",
+  "개발팀",
+  "퍼포먼스팀",
+  "영상컨텐츠팀",
+  "매장컨텐츠팀",
+  "컨텐츠팀",
+  "부동산팀",
+  "마케팅부",
+];
+
+// 실제 조직도를 받기 전에 임시로 넣었던 목록. 아직 응답이 한 건도 없고 부서 목록이
+// 이 임시값 그대로라면 실제 목록으로 갈아끼웁니다. 이미 운영이 시작된 뒤에는
+// (응답이 있거나 직접 편집한 흔적이 있으면) 아무것도 건드리지 않습니다.
+const PLACEHOLDER_DEPARTMENTS = [
   "경영지원",
   "인사·총무",
   "영업",
@@ -172,10 +188,19 @@ async function runMigrations(): Promise<void> {
 }
 
 async function seedDepartments(q: SqlFn) {
-  const rows = (await q`select count(*)::int as n from departments`) as {
-    n: number;
-  }[];
-  if (rows[0]?.n > 0) return;
+  const existing = (await q`select name from departments`) as { name: string }[];
+
+  if (existing.length > 0) {
+    const responses = (await q`select count(*)::int as n from survey_responses`) as {
+      n: number;
+    }[];
+    const untouched =
+      responses[0]?.n === 0 &&
+      existing.every((row) => PLACEHOLDER_DEPARTMENTS.includes(row.name));
+    if (!untouched) return;
+    await q`delete from departments`;
+  }
+
   for (let i = 0; i < DEFAULT_DEPARTMENTS.length; i++) {
     await q`insert into departments (name, sort_order)
             values (${DEFAULT_DEPARTMENTS[i]}, ${(i + 1) * 10})

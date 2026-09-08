@@ -84,3 +84,34 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "부서를 수정하지 못했습니다." }, { status: 500 });
   }
 }
+
+export async function DELETE(request: Request) {
+  const session = await requireSession();
+  if (!session) return NextResponse.json({ error: "권한이 없습니다." }, { status: 401 });
+
+  const body = (await request.json().catch(() => ({}))) as { id?: unknown };
+  const id = Number(body.id);
+  if (!Number.isInteger(id) || id <= 0) {
+    return NextResponse.json({ error: "대상 부서를 찾을 수 없습니다." }, { status: 400 });
+  }
+
+  try {
+    await ensureSchema();
+    // 응답이 한 건이라도 달린 부서는 지우지 않습니다. 과거 집계가 깨지기 때문입니다.
+    // 그런 경우에는 '숨기기'로 설문 드롭다운에서만 빼면 됩니다.
+    const used = (await sql()`
+      select count(*)::int as n from survey_responses where department_id = ${id}
+    `) as { n: number }[];
+    if ((used[0]?.n ?? 0) > 0) {
+      return NextResponse.json(
+        { error: "이미 응답이 있는 부서는 삭제할 수 없습니다. '숨기기'를 사용해 주세요." },
+        { status: 409 },
+      );
+    }
+    await sql()`delete from departments where id = ${id}`;
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    console.error("[departments:delete]", err);
+    return NextResponse.json({ error: "부서를 삭제하지 못했습니다." }, { status: 500 });
+  }
+}

@@ -18,7 +18,7 @@ export default function DepartmentManager({ departments }: { departments: Depart
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  async function call(method: "POST" | "PATCH", body: Record<string, unknown>) {
+  async function call(method: "POST" | "PATCH" | "DELETE", body: Record<string, unknown>) {
     setBusy(true);
     setError(null);
     try {
@@ -104,6 +104,20 @@ export default function DepartmentManager({ departments }: { departments: Depart
                   >
                     {dept.active ? "숨기기" : "다시 표시"}
                   </button>
+                  {dept.response_count === 0 && (
+                    <button
+                      type="button"
+                      className="text-xs text-muted hover:text-red-600"
+                      disabled={busy}
+                      onClick={() => {
+                        if (confirm(`'${dept.name}' 부서를 삭제할까요? 되돌릴 수 없습니다.`)) {
+                          call("DELETE", { id: dept.id });
+                        }
+                      }}
+                    >
+                      삭제
+                    </button>
+                  )}
                 </div>
               </>
             )}
@@ -134,7 +148,8 @@ export default function DepartmentManager({ departments }: { departments: Depart
       {error && <p className="mt-2 text-sm font-medium text-red-600">{error}</p>}
       <p className="mt-3 text-xs leading-relaxed text-muted">
         숨긴 부서는 설문 드롭다운에 나오지 않지만 과거 응답과 집계는 그대로 남습니다. 이름을
-        바꾸면 과거 응답의 부서명도 함께 갱신되어 추이가 끊기지 않습니다.
+        바꾸면 과거 응답의 부서명도 함께 갱신되어 추이가 끊기지 않습니다. 삭제는 아직 응답이
+        한 건도 없는 부서에만 가능합니다.
       </p>
     </div>
   );
