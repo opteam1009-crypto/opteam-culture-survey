@@ -134,7 +134,8 @@ export async function sendSubmissionNotification(input: NotificationInput): Prom
 
 async function logNotification(
   q: ReturnType<typeof sql>,
-  responseId: string,
+  // 설정 확인 메일은 특정 응답에 딸린 것이 아니라 null 입니다(컬럼도 nullable).
+  responseId: string | null,
   to: string,
   subject: string,
   body: string,
@@ -149,6 +150,83 @@ async function logNotification(
   } catch {
     // 로그 기록 실패가 제출을 막아서는 안 됩니다.
   }
+}
+
+/** 지금 설정된 발송 수단. 어디에도 설정이 없으면 null. */
+export function mailMode(): "resend" | "smtp" | null {
+  if (process.env.RESEND_API_KEY) return "resend";
+  if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) return "smtp";
+  return null;
+}
+
+export function notifyRecipients(): string[] {
+  return recipients();
+}
+
+export interface MailTestResult {
+  ok: boolean;
+  mode: "resend" | "smtp" | null;
+  to: string[];
+  error?: string;
+}
+
+/**
+ * 설정이 실제로 동작하는지 확인용 메일을 한 통 보냅니다.
+ * 설문을 가짜로 제출해 보지 않고도 연동 상태를 확인할 수 있어야 합니다.
+ * 실패해도 예외를 던지지 않고 무엇이 문제인지 문자열로 돌려줍니다.
+ */
+export async function sendTestMail(triggeredBy: string): Promise<MailTestResult> {
+  const to = recipients();
+  const mode = mailMode();
+
+  if (to.length === 0) {
+    return { ok: false, mode, to, error: "NOTIFY_EMAILS 가 설정되지 않아 받을 주소가 없습니다." };
+  }
+  if (!mode) {
+    return {
+      ok: false,
+      mode,
+      to,
+      error: "발송 수단이 없습니다. RESEND_API_KEY 또는 SMTP_HOST/SMTP_USER/SMTP_PASS 를 등록해 주세요.",
+    };
+  }
+
+  const when = new Date().toLocaleString("ko-KR", { timeZone: "Asia/Seoul" });
+  const subject = "[조직 컨디션] 알림 메일 설정 확인";
+  const text = [
+    "이 메일이 도착했다면 제출 알림 설정이 정상입니다.",
+    "",
+    `보낸 방식 : ${mode === "resend" ? "Resend" : "SMTP"}`,
+    `받는 주소 : ${to.join(", ")}`,
+    `보낸 시각 : ${when}`,
+    `요청한 계정 : ${triggeredBy}`,
+    "",
+    "앞으로 누군가 설문을 제출하면 같은 주소로 알림이 갑니다.",
+  ].join("\n");
+  const html = `<!doctype html><html lang="ko"><body style="margin:0;background:#f6f7f9;padding:24px;font-family:-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;color:#111827">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;margin:0 auto;background:#ffffff;border:1px solid #e5e7eb;border-radius:12px">
+<tr><td style="padding:24px">
+<div style="font-size:12px;font-weight:700;letter-spacing:.08em;color:#1f4d8f">설정 확인</div>
+<h1 style="margin:8px 0 16px;font-size:18px;line-height:1.5">알림 메일 설정이 정상입니다</h1>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;border-collapse:collapse">
+${row("보낸 방식", mode === "resend" ? "Resend" : "SMTP")}
+${row("받는 주소", escapeHtml(to.join(", ")))}
+${row("보낸 시각", escapeHtml(when))}
+</table>
+<p style="margin:16px 0 0;font-size:12px;line-height:1.6;color:#6b7280">앞으로 누군가 설문을 제출하면 같은 주소로 알림이 갑니다.</p>
+</td></tr></table></body></html>`;
+
+  try {
+    if (mode === "resend") await sendViaResend(to, subject, text, html);
+    else await sendViaSmtp(to, subject, text, html);
+  } catch (err) {
+    const error = err instanceof Error ? err.message : String(err);
+    await logNotification(sql(), null, to.join(", "), subject, text, "failed", error);
+    return { ok: false, mode, to, error };
+  }
+
+  await logNotification(sql(), null, to.join(", "), subject, text, "sent", null);
+  return { ok: true, mode, to };
 }
 
 async function sendViaResend(to: string[], subject: string, text: string, html: string) {

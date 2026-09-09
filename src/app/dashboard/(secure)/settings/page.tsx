@@ -3,9 +3,11 @@ import { ROLE_LABEL, readSession } from "@/lib/auth";
 import { ensureSchema, sql } from "@/lib/db";
 import { loadDepartments } from "@/lib/queries";
 import { formatDateTime } from "@/lib/period";
+import { mailMode, notifyRecipients } from "@/lib/mail";
 import { ANSWERABLE_REQUIRED, QUESTIONS, TEXT_QUESTIONS } from "@/lib/questions";
 import DepartmentManager from "@/components/DepartmentManager";
 import DemoDataPanel from "@/components/DemoDataPanel";
+import MailTestButton from "@/components/MailTestButton";
 
 export const dynamic = "force-dynamic";
 
@@ -37,14 +39,10 @@ export default async function SettingsPage() {
   `) as { n: number }[];
   const demoCount = demoRows[0]?.n ?? 0;
 
-  const mailMode = process.env.RESEND_API_KEY
-    ? "Resend"
-    : process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS
-      ? "SMTP"
-      : null;
-  const notifyCount = (process.env.NOTIFY_EMAILS ?? "")
-    .split(/[,;\s]+/)
-    .filter((s) => s.includes("@")).length;
+  const mode = mailMode();
+  const modeLabel = mode === "resend" ? "Resend" : mode === "smtp" ? "SMTP" : null;
+  const notifyList = notifyRecipients();
+  const notifyCount = notifyList.length;
 
   return (
     <div className="space-y-6">
@@ -69,10 +67,10 @@ export default async function SettingsPage() {
           누군가 설문을 제출하면 지정한 주소로 알림 메일이 발송됩니다.
         </p>
         <dl className="grid gap-3 sm:grid-cols-3">
-          <Status label="발송 수단" value={mailMode ?? "미설정"} ok={Boolean(mailMode)} />
+          <Status label="발송 수단" value={modeLabel ?? "미설정"} ok={Boolean(modeLabel)} />
           <Status
             label="수신 주소"
-            value={notifyCount > 0 ? `${notifyCount}곳` : "미설정"}
+            value={notifyCount > 0 ? notifyList.join(", ") : "미설정"}
             ok={notifyCount > 0}
           />
           <Status
@@ -81,7 +79,7 @@ export default async function SettingsPage() {
             ok={notifications[0]?.status === "sent"}
           />
         </dl>
-        {!mailMode && (
+        {!modeLabel && (
           <p className="mt-4 rounded-lg bg-amber-50 px-3.5 py-3 text-sm leading-relaxed text-amber-900">
             발송 수단이 아직 설정되지 않았습니다. 제출 기록은 아래 목록에 그대로 쌓이므로 누락되지
             않지만, 메일로 받으시려면 <code className="font-semibold">RESEND_API_KEY</code> 또는{" "}
@@ -89,6 +87,8 @@ export default async function SettingsPage() {
             등록해 주세요.
           </p>
         )}
+
+        <MailTestButton ready={Boolean(modeLabel) && notifyCount > 0} />
 
         <h3 className="mb-2 mt-6 text-sm font-bold">최근 알림 기록</h3>
         {notifications.length === 0 ? (
