@@ -99,7 +99,7 @@ export const QUESTIONS: Question[] = [
 
   // ── 02 리더십 및 소통 ─────────────────────────────────────
   { code: "lead_1", sectionCode: "lead", type: "scale5", scored: true, required: true,
-    prompt: "직속 상사(팀장·리더)는 업무의 우선순위와 기대 수준을 명확하게 전달한다." },
+    prompt: "회사 또는 직속 상사(팀장·리더)는 업무의 우선순위와 기대 수준을 명확하게 전달한다." },
   { code: "lead_2", sectionCode: "lead", type: "scale5", scored: true, required: true,
     prompt: "업무에 필요한 정보가 적절한 시점에 공유된다." },
   { code: "lead_3", sectionCode: "lead", type: "scale5", scored: true, required: true,
