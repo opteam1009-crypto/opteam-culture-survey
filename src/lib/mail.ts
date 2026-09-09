@@ -18,12 +18,19 @@ export const VISIBILITY_LABEL: Record<string, string> = {
   hr_only: "인사책임자만",
 };
 
+/**
+ * Vercel 은 프로젝트를 import 할 때 .env.example 을 읽어 환경변수를 만듭니다.
+ * 그래서 NOTIFY_EMAILS 에 예시값(CHANGE_ME@example.com)이 그대로 들어있을 수 있는데,
+ * '@' 가 있다는 이유로 진짜 주소로 취급하면 엉뚱한 곳으로 메일을 보내게 됩니다.
+ * 다른 설정(auth.ts, /api/health)과 같은 기준으로 예시값은 미설정으로 봅니다.
+ */
 function recipients(): string[] {
   const raw = process.env.NOTIFY_EMAILS ?? "";
   return raw
     .split(/[,;\s]+/)
     .map((s) => s.trim())
-    .filter((s) => s.includes("@"));
+    .filter((s) => s.includes("@"))
+    .filter((s) => !s.startsWith("CHANGE_ME") && !s.startsWith("바꾸세요"));
 }
 
 function buildBody(input: NotificationInput): { subject: string; text: string; html: string } {
