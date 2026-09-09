@@ -82,12 +82,12 @@ export default function InterviewCalendar({
         </header>
 
         <div className="overflow-x-auto">
-          <div className="min-w-[700px]">
+          <div className="min-w-[760px]">
             <div className="grid grid-cols-7 border-b border-line bg-gray-50">
               {COLS.map((w) => (
                 <div
                   key={w}
-                  className={`px-2 py-2 text-center text-[11px] font-bold ${
+                  className={`px-2 py-2.5 text-center text-xs font-bold ${
                     w === 0 ? "text-red-500" : w === 6 ? "text-blue-500" : "text-muted"
                   }`}
                 >
@@ -102,16 +102,16 @@ export default function InterviewCalendar({
                 return (
                   <div
                     key={i}
-                    className={`min-h-[92px] border-b border-r border-line/70 p-1.5 ${
+                    className={`min-h-[118px] border-b border-r border-line/70 p-2 ${
                       cell.inMonth ? "bg-white" : "bg-gray-50/60"
                     } ${i % 7 === 6 ? "border-r-0" : ""}`}
                   >
                     <div
-                      className={`mb-1 text-[11px] font-bold tabular-nums ${
+                      className={`mb-1.5 text-xs font-bold tabular-nums ${
                         !cell.inMonth
                           ? "text-gray-300"
                           : cell.isToday
-                            ? "inline-flex h-5 w-5 items-center justify-center rounded-full bg-brand text-white"
+                            ? "inline-flex h-6 w-6 items-center justify-center rounded-full bg-brand text-white"
                             : cell.weekday === 0
                               ? "text-red-500"
                               : cell.weekday === 6
@@ -231,7 +231,7 @@ function PersonChip({ entry }: { entry: CalendarEntry }) {
     <Link
       href={`/dashboard/responses/${entry.responseId}`}
       title={`${entry.department} ${entry.name} · ${entry.rank}순위 · ${entry.raw}`}
-      className="block truncate rounded px-1.5 py-1 text-[11px] font-semibold leading-tight transition hover:brightness-95"
+      className="block truncate rounded px-2 py-1.5 text-xs font-semibold leading-tight transition hover:brightness-95"
       style={{ background: tone.bg, color: tone.ink }}
     >
       {entry.ceoOnly && <span aria-hidden>🔒</span>}
