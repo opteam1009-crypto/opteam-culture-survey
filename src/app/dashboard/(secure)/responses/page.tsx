@@ -71,6 +71,18 @@ export default async function ResponsesPage({
           <button type="submit" className="btn-ghost py-2 text-sm">
             적용
           </button>
+          {view === "list" && rows.length > 0 && (
+            <Link
+              href={`/dashboard/responses/print${
+                period || dept
+                  ? `?${new URLSearchParams({ ...(period && { period }), ...(dept && { dept })}).toString()}`
+                  : ""
+              }`}
+              className="btn-ghost py-2 text-sm"
+            >
+              {rows.length}명 PDF로 저장
+            </Link>
+          )}
           <div className="ml-auto flex gap-1 rounded-lg border border-line p-0.5">
             <TabLink label="응답 목록" active={view === "list"} href={buildHref({ period, dept, view: "list" })} />
             <TabLink label="주관식 모아보기" active={view === "text"} href={buildHref({ period, dept, view: "text" })} />

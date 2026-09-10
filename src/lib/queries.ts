@@ -271,6 +271,45 @@ function roundOrNull(value: number | null): number | null {
 
 // ── 리스크 / 면담 / 근속 ────────────────────────────────────────────────
 
+/**
+ * 여러 응답의 답변을 한 번에 읽어옵니다. 여러 명을 묶어 인쇄할 때 씁니다.
+ * 한 명씩 loadResponseDetail 을 부르면 인원수만큼 왕복이 생겨,
+ * 30명이면 60번을 오가느라 화면이 뜨기까지 한참 걸립니다.
+ */
+export async function loadAnswersForResponses(
+  ids: string[],
+): Promise<Map<string, { question_code: string; value_num: number | null; value_text: string | null }[]>> {
+  const out = new Map<
+    string,
+    { question_code: string; value_num: number | null; value_text: string | null }[]
+  >();
+  if (ids.length === 0) return out;
+
+  await ensureSchema();
+  const rows = (await sql()`
+    select response_id, question_code, value_num, value_text
+      from survey_answers
+     where response_id = any(${ids}::uuid[])
+  `) as {
+    response_id: string;
+    question_code: string;
+    value_num: number | null;
+    value_text: string | null;
+  }[];
+
+  for (const row of rows) {
+    const bucket = out.get(row.response_id);
+    const item = {
+      question_code: row.question_code,
+      value_num: row.value_num,
+      value_text: row.value_text,
+    };
+    if (bucket) bucket.push(item);
+    else out.set(row.response_id, [item]);
+  }
+  return out;
+}
+
 export interface RiskBreakdown {
   code: string;
   label: string;
