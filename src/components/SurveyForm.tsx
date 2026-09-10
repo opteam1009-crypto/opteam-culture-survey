@@ -34,16 +34,20 @@ export default function SurveyForm({ departments, periodLabel }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [touched, setTouched] = useState(false);
 
+  // 보기를 고르는 문항이 아니면서 반드시 채워야 하는 항목(서술형·면담 일시).
   const requiredTexts = useMemo(
     () =>
       SECTIONS.flatMap((s) => questionsOfSection(s.code)).filter(
-        (q) => q.type === "text" && q.required,
+        (q) => (q.type === "text" || q.type === "datetime") && q.required,
       ),
     [],
   );
 
-  const answered = ANSWERABLE_REQUIRED.filter((q) => choices[q.code]).length;
-  const progress = Math.round((answered / ANSWERABLE_REQUIRED.length) * 100);
+  const answered =
+    ANSWERABLE_REQUIRED.filter((q) => choices[q.code]).length +
+    requiredTexts.filter((q) => (texts[q.code] ?? "").trim()).length;
+  const totalRequired = ANSWERABLE_REQUIRED.length + requiredTexts.length;
+  const progress = Math.round((answered / totalRequired) * 100);
 
   const missingProfile = !name.trim() || !departmentId;
   const firstUnanswered = ANSWERABLE_REQUIRED.find((q) => !choices[q.code]);
@@ -65,7 +69,11 @@ export default function SurveyForm({ departments, periodLabel }: Props) {
       return;
     }
     if (firstEmptyText) {
-      setError("1:1 면담 희망 일시의 날짜와 시간을 모두 선택해 주세요.");
+      setError(
+        firstEmptyText.type === "datetime"
+          ? "1:1 면담 희망 일시의 날짜와 시간을 모두 선택해 주세요."
+          : "아직 작성하지 않은 항목이 있습니다. 표시된 곳을 확인해 주세요.",
+      );
       scrollTo(`q-${firstEmptyText.code}`);
       return;
     }
@@ -213,11 +221,13 @@ export default function SurveyForm({ departments, periodLabel }: Props) {
           if (questions.length === 0) return null;
 
           const options = questions.filter((q) => q.type === "scale5" || q.type === "choice");
-          const dateQuestions = questions.filter((q) => q.type === "datetime" && q.required);
+          const written = questions.filter(
+            (q) => (q.type === "text" || q.type === "datetime") && q.required,
+          );
           const done =
             options.filter((q) => choices[q.code]).length +
-            dateQuestions.filter((q) => (texts[q.code] ?? "").trim()).length;
-          const total = options.length + dateQuestions.length;
+            written.filter((q) => (texts[q.code] ?? "").trim()).length;
+          const total = options.length + written.length;
           const complete = total > 0 && done === total;
           const showScale = questions.some((q) => q.type === "scale5");
           const labels = scaleLabelsFor(section.code);
@@ -338,7 +348,7 @@ export default function SurveyForm({ departments, periodLabel }: Props) {
                   <span className="text-muted">
                     {periodLabel} · 필수 문항{" "}
                     <b className="text-ink tabular-nums">
-                      {answered}/{ANSWERABLE_REQUIRED.length}
+                      {answered}/{totalRequired}
                     </b>
                   </span>
                   <span className="font-bold tabular-nums text-brand">{progress}%</span>

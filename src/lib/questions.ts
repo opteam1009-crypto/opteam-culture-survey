@@ -71,7 +71,7 @@ export const SECTIONS: Section[] = [
   },
   { code: "risk", index: "06", label: "조직 리스크 체크" },
   { code: "voice", index: "07", label: "자유 의견", note: "사소한 내용도 좋습니다" },
-  { code: "ceo", index: "08", label: "대표에게 하고 싶은 말", note: "작성하지 않아도 됩니다" },
+  { code: "ceo", index: "08", label: "대표에게 하고 싶은 말", note: "짧게라도 남겨주세요" },
   { code: "interview", index: "09", label: "1:1 면담 일정", note: "전 직원 필수" },
 ];
 
@@ -165,20 +165,20 @@ export const QUESTIONS: Question[] = [
   },
 
   // ── 07 자유 의견 ──────────────────────────────────────────
-  { code: "voice_keep", sectionCode: "voice", type: "text", scored: false, required: false,
+  { code: "voice_keep", sectionCode: "voice", type: "text", scored: false, required: true,
     prompt: "지난 달 회사에서 계속 유지했으면 하는 것 한 가지가 있다면 무엇인가요?",
     placeholder: "자유롭게 작성해주세요." },
-  { code: "voice_improve", sectionCode: "voice", type: "text", scored: false, required: false,
+  { code: "voice_improve", sectionCode: "voice", type: "text", scored: false, required: true,
     prompt: "회사가 앞으로 딱 한 가지만 개선한다면 가장 먼저 바꿨으면 하는 것은 무엇인가요?",
     placeholder: "업무방식, 조직문화, 시스템, 소통, 복지, 근무환경 등 무엇이든 좋습니다." },
-  { code: "voice_idea", sectionCode: "voice", type: "text", scored: false, required: false,
+  { code: "voice_idea", sectionCode: "voice", type: "text", scored: false, required: true,
     prompt: "회사의 매출·업무효율·고객만족을 높일 수 있는 아이디어가 있다면 적어주세요.",
     placeholder: "사소한 아이디어도 좋습니다." },
 
   // ── 08 대표에게 하고 싶은 말 ──────────────────────────────
-  { code: "ceo_message", sectionCode: "ceo", type: "text", scored: false, required: false,
+  { code: "ceo_message", sectionCode: "ceo", type: "text", scored: false, required: true,
     prompt: "대표 또는 경영진에게 전달하고 싶은 이야기가 있다면 자유롭게 적어주세요.",
-    placeholder: "이 항목은 선택사항입니다." },
+    placeholder: "특별히 없다면 그렇게 적어주셔도 됩니다." },
 
   // ── 09 1:1 면담 일정 ──────────────────────────────────────
   { code: "interview_first", sectionCode: "interview", type: "datetime", scored: false, required: true,
