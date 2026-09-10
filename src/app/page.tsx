@@ -1,6 +1,7 @@
 import Link from "next/link";
 import SurveyForm, { type DepartmentOption } from "@/components/SurveyForm";
-import { ensureSchema, hasDatabaseUrl, sql } from "@/lib/db";
+import { hasDatabaseUrl } from "@/lib/db";
+import { loadActiveDepartments } from "@/lib/queries";
 import { currentPeriod, formatPeriod } from "@/lib/period";
 
 export const dynamic = "force-dynamic";
@@ -15,10 +16,7 @@ export default async function SurveyPage() {
 
   let departments: DepartmentOption[] = [];
   try {
-    await ensureSchema();
-    departments = (await sql()`
-      select id, name from departments where active = true order by sort_order, name
-    `) as DepartmentOption[];
+    departments = await loadActiveDepartments();
   } catch (err) {
     return <SetupNotice detail={err instanceof Error ? err.message : String(err)} />;
   }

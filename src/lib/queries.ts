@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { ensureSchema, sql } from "@/lib/db";
 import { VISIBLE_TO, type Role } from "@/lib/auth";
 import {
@@ -9,6 +10,9 @@ import {
   severityOf,
 } from "@/lib/questions";
 import { meanOf, toHundred } from "@/lib/score";
+
+/** 부서 목록 캐시를 비울 때 쓰는 태그. 설정에서 부서를 고치면 이 태그를 무효화합니다. */
+export const DEPARTMENTS_TAG = "departments";
 
 export interface ResponseRow {
   id: string;
@@ -64,6 +68,23 @@ function normalizeSectionScores(value: unknown): Record<string, number> {
   }
   return out;
 }
+
+/**
+ * 설문 화면(공개 링크)이 쓰는 부서 목록.
+ * 이 값은 거의 바뀌지 않는데 방문자마다 DB 를 한 번씩 다녀오면, 원격 DB 에서는
+ * 그 왕복이 그대로 첫 화면 지연이 됩니다. 캐시해 두고 부서를 고칠 때만 비웁니다.
+ * (설정에서 부서를 바꾸면 departments 태그를 무효화해 즉시 반영됩니다.)
+ */
+export const loadActiveDepartments = unstable_cache(
+  async (): Promise<{ id: number; name: string }[]> => {
+    await ensureSchema();
+    return (await sql()`
+      select id, name from departments where active = true order by sort_order, name
+    `) as { id: number; name: string }[];
+  },
+  ["survey-active-departments"],
+  { revalidate: 300, tags: [DEPARTMENTS_TAG] },
+);
 
 export async function loadDepartments(): Promise<DepartmentRow[]> {
   await ensureSchema();

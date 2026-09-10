@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
+import { DEPARTMENTS_TAG } from "@/lib/queries";
 import { readSession } from "@/lib/auth";
 import { ensureSchema, sql } from "@/lib/db";
 
@@ -32,6 +34,7 @@ export async function POST(request: Request) {
       v: number;
     }[];
     await sql()`insert into departments (name, sort_order) values (${name}, ${next[0]?.v ?? 10})`;
+    revalidateTag(DEPARTMENTS_TAG);
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("[departments:create]", err);
@@ -78,6 +81,7 @@ export async function PATCH(request: Request) {
     if (typeof body.active === "boolean") {
       await sql()`update departments set active = ${body.active} where id = ${id}`;
     }
+    revalidateTag(DEPARTMENTS_TAG);
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("[departments:update]", err);
@@ -109,6 +113,7 @@ export async function DELETE(request: Request) {
       );
     }
     await sql()`delete from departments where id = ${id}`;
+    revalidateTag(DEPARTMENTS_TAG);
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("[departments:delete]", err);
