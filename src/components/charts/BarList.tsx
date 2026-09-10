@@ -38,7 +38,7 @@ export default function BarList({ items, showTone = false, emptyMessage = "í‘œì‹
         return (
           <li
             key={item.key}
-            className={`relative -mx-2 rounded-lg px-2 py-1.5 transition ${active ? "bg-gray-50" : ""}`}
+            className={`relative -mx-2 min-w-0 rounded-lg px-2 py-1.5 transition ${active ? "bg-gray-50" : ""}`}
             onMouseEnter={() => setHover(item.key)}
             onMouseLeave={() => setHover(null)}
           >

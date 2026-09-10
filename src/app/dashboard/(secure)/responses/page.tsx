@@ -39,7 +39,8 @@ export default async function ResponsesPage({
         <h1 className="text-xl font-bold">응답 열람</h1>
         <p className="mt-1 text-sm text-muted">
           {ROLE_LABEL[session.role]} 계정에 공개된 응답만 표시됩니다. 응답자가 열람 범위를 다르게
-          지정한 응답은 목록과 집계 모두에서 제외됩니다.
+          지정한 응답은 이 목록에 나오지 않습니다. 다만 현황 화면의 평균·건수 같은 숫자에는
+          전원이 반영됩니다.
         </p>
       </header>
 
@@ -95,7 +96,53 @@ export default async function ResponsesPage({
           {rows.length === 0 ? (
             <p className="px-6 py-10 text-center text-sm text-muted">조건에 맞는 응답이 없습니다.</p>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+            {/*
+              좁은 화면에서는 7칸짜리 표를 옆으로 밀어 보게 되어 제출자 말고는
+              아무것도 안 보입니다. 같은 내용을 카드로 쌓아 한 사람씩 읽히게 합니다.
+            */}
+            <ul className="divide-y divide-line/60 sm:hidden">
+              {rows.map((row) => {
+                const tone = scoreTone(row.overall_score);
+                return (
+                  <li key={row.id} className="px-4 py-3.5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <Link
+                          href={`/dashboard/responses/${row.id}`}
+                          className="font-semibold text-brand hover:underline"
+                        >
+                          {row.respondent_name}
+                        </Link>
+                        <p className="mt-0.5 text-xs text-muted">
+                          {row.department_name} · {formatPeriod(row.period)}
+                        </p>
+                      </div>
+                      <span
+                        className="shrink-0 rounded px-1.5 py-0.5 text-[11px] font-semibold"
+                        style={{ background: tone.bg, color: tone.ink }}
+                      >
+                        {tone.label} {formatScore(row.overall_score)}
+                      </span>
+                    </div>
+                    <div className="mt-2 flex items-center justify-between gap-3">
+                      <p className="min-w-0 text-[11px] leading-relaxed text-muted">
+                        {VISIBILITY_LABEL[row.visibility] ?? row.visibility}
+                        <span className="mx-1">·</span>
+                        {formatDateTime(row.submitted_at)}
+                      </p>
+                      <DeleteResponseButton
+                        id={row.id}
+                        name={row.respondent_name}
+                        period={formatPeriod(row.period)}
+                      />
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+
+            <div className="hidden overflow-x-auto sm:block">
               <table className="w-full min-w-[800px] text-sm">
                 <thead>
                   <tr className="border-b border-line bg-gray-50 text-left text-xs text-muted">
@@ -147,6 +194,7 @@ export default async function ResponsesPage({
                 </tbody>
               </table>
             </div>
+            </>
           )}
         </section>
       ) : (

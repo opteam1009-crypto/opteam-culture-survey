@@ -109,7 +109,7 @@ export default async function DashboardPage({
       </header>
 
       {/* ── 요약 타일 ────────────────────────────────────── */}
-      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <ScoreTile label="종합 점수" score={overall} delta={delta} prevLabel={formatPeriod(prev)} />
         <Tile label="응답 건수" value={`${rows.length}`} unit="건" hint={`누적 ${all.length}건`} />
         <Tile
@@ -208,8 +208,14 @@ export default async function DashboardPage({
       <RiskPanel breakdown={riskBreakdown} flagged={flagged} />
 
       {/* ── 문항 우선순위 ────────────────────────────────── */}
+      {/*
+        grid 칸의 기본 최소너비는 min-content 입니다. 한글은 globals.css 에서
+        word-break: keep-all 이라 문항처럼 긴 문장은 min-content 가 크고,
+        그만큼 칸이 벌어져 좁은 화면에서 밖으로 밀려납니다. min-w-0 이 있어야
+        칸이 줄어들고 안쪽 truncate 가 동작합니다.
+      */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <section className="card p-6">
+        <section className="card min-w-0 p-6">
           <h2 className="text-base font-bold">개선 우선순위 문항</h2>
           <p className="mb-4 mt-1 text-sm text-muted">이번 회차 점수가 가장 낮은 5개 문항입니다.</p>
           <BarList
@@ -222,7 +228,7 @@ export default async function DashboardPage({
           />
         </section>
 
-        <section className="card p-6">
+        <section className="card min-w-0 p-6">
           <h2 className="text-base font-bold">잘 유지되고 있는 문항</h2>
           <p className="mb-4 mt-1 text-sm text-muted">이번 회차 점수가 가장 높은 3개 문항입니다.</p>
           <BarList
@@ -251,12 +257,14 @@ export default async function DashboardPage({
               <li key={row.id}>
                 <Link
                   href={`/dashboard/responses/${row.id}`}
-                  className="-mx-2 flex items-center gap-3 rounded-lg px-2 py-3 transition hover:bg-gray-50"
+                  // 좁은 화면에서는 이름·부서·점수·시각이 한 줄에 다 안 들어가
+                  // 밖으로 밀려납니다. 줄바꿈을 허용하고 이름·부서는 줄어들게 둡니다.
+                  className="-mx-2 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg px-2 py-3 transition hover:bg-gray-50"
                 >
-                  <span className="w-24 shrink-0 truncate text-sm font-medium">
+                  <span className="min-w-0 max-w-[45%] truncate text-sm font-medium sm:w-24 sm:max-w-none sm:shrink-0">
                     {row.respondent_name}
                   </span>
-                  <span className="w-24 shrink-0 truncate text-sm text-muted">
+                  <span className="min-w-0 max-w-[45%] truncate text-sm text-muted sm:w-24 sm:max-w-none sm:shrink-0">
                     {row.department_name}
                   </span>
                   <span
