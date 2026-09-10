@@ -61,7 +61,10 @@ export default async function ResponsesPrintPage({
           <Link href={backHref} className="btn-ghost px-3 py-1.5 text-xs">
             ← 목록으로
           </Link>
-          <PrintButton />
+          {/* 저장 파일명: 2026-09_기획운영팀_3명 */}
+          <PrintButton
+            filename={`${period || "전체회차"}_${dept || "전체부서"}_${rows.length}명`}
+          />
         </div>
       </div>
 

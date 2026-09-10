@@ -77,6 +77,10 @@ export default function TrendChart({ points, seriesName }: Props) {
 
   const last = [...points].reverse().find((p) => p.value !== null);
   const lastIndex = last ? points.lastIndexOf(last) : -1;
+  // 100점이면 점이 맨 위 눈금선에 붙어, 그 위에 적은 값이 그래프 밖으로 잘립니다.
+  // 글자가 들어갈 여유가 없으면 점 아래쪽에 적습니다.
+  const lastY = last ? y(last.value as number) : 0;
+  const labelAbove = lastY - 12 >= 10;
   const active = hover !== null ? points[hover] : null;
 
   return (
@@ -133,7 +137,7 @@ export default function TrendChart({ points, seriesName }: Props) {
         {last && lastIndex >= 0 && hover === null && (
           <text
             x={x(lastIndex)}
-            y={y(last.value as number) - 12}
+            y={labelAbove ? lastY - 12 : lastY + 18}
             textAnchor={lastIndex === points.length - 1 ? "end" : "middle"}
             fontSize={12}
             fontWeight={700}

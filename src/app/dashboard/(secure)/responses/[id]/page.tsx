@@ -28,7 +28,10 @@ export default async function ResponseDetailPage({ params }: { params: { id: str
         <Link href="/dashboard/responses" className="text-xs font-semibold text-brand">
           ← 응답 목록
         </Link>
-        <PrintButton />
+        {/* 저장 파일명: 기획운영팀_김서준_2026-09 */}
+        <PrintButton
+          filename={`${detail.department_name}_${detail.respondent_name}_${detail.period}`}
+        />
       </div>
 
       <ResponseSummary detail={detail} />

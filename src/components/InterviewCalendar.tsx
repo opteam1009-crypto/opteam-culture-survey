@@ -21,6 +21,8 @@ export interface CalendarEntry {
   date: string | null;
   weekday: number | null;
   band: TimeBand;
+  /** 시간까지 고른 경우의 표시 문구(예: "오전 10:30"). 자유 입력이면 null. */
+  time: string | null;
   raw: string;
 }
 
@@ -227,17 +229,22 @@ function PersonChip({ entry }: { entry: CalendarEntry }) {
         ? { bg: "#fdeee7", ink: "#93441f" }
         : { bg: "#eef3fb", ink: "#1f4d8f" };
 
+  // 시간까지 고른 응답은 "오전 10:30", 예전 자유 입력은 "오전" 처럼 시간대만 나옵니다.
+  const when = entry.time ?? (entry.band === "unknown" ? null : TIME_BAND_LABEL[entry.band]);
+
   return (
     <Link
       href={`/dashboard/responses/${entry.responseId}`}
       title={`${entry.department} ${entry.name} · ${entry.rank}순위 · ${entry.raw}`}
-      className="block truncate rounded px-2 py-1.5 text-xs font-semibold leading-tight transition hover:brightness-95"
+      className="block rounded px-2 py-1.5 text-xs font-semibold leading-tight transition hover:brightness-95"
       style={{ background: tone.bg, color: tone.ink }}
     >
-      {entry.ceoOnly && <span aria-hidden>🔒</span>}
-      {entry.name}
-      <span className="ml-1 font-normal opacity-70">
-        {entry.rank === 2 ? "2순위" : ""} {TIME_BAND_LABEL[entry.band] === "시간 미지정" ? "" : TIME_BAND_LABEL[entry.band]}
+      <span className="block truncate">
+        {entry.ceoOnly && <span aria-hidden>🔒</span>}
+        {entry.name}
+      </span>
+      <span className="mt-0.5 block truncate text-[11px] font-normal opacity-75">
+        {entry.rank}순위{when ? ` · ${when}` : ""}
       </span>
     </Link>
   );

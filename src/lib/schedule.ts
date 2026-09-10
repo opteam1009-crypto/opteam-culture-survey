@@ -22,6 +22,8 @@ export interface ParsedSlot {
   /** 0=일 … 6=토. 요일만 적힌 경우에도 채워집니다. */
   weekday: number | null;
   band: TimeBand;
+  /** 설문에서 시간까지 고른 경우의 표시 문구(예: "오전 10:30"). 자유 입력이면 null. */
+  time: string | null;
   raw: string;
 }
 
@@ -62,11 +64,13 @@ export function parseSlot(raw: string, referencePeriod: string): ParsedSlot {
     const [, y, mo, d, hh, mm] = exact;
     const probe = new Date(Date.UTC(Number(y), Number(mo) - 1, Number(d)));
     const hour = Number(hh);
+    const clock = `${hour < 12 ? "오전" : "오후"} ${hour <= 12 ? hour : hour - 12}:${mm}`;
     return {
       date: `${y}-${mo}-${d}`,
       weekday: probe.getUTCDay(),
       band: hour >= 18 ? "evening" : hour >= 12 ? "afternoon" : "morning",
-      raw: `${Number(mo)}월 ${Number(d)}일 ${hour < 12 ? "오전" : "오후"} ${hour <= 12 ? hour : hour - 12}:${mm}`,
+      time: clock,
+      raw: `${Number(mo)}월 ${Number(d)}일 ${clock}`,
     };
   }
 
@@ -90,20 +94,21 @@ export function parseSlot(raw: string, referencePeriod: string): ParsedSlot {
   }
 
   if (month === null || day === null || month < 1 || month > 12 || day < 1 || day > 31) {
-    return { date: null, weekday, band, raw: text };
+    return { date: null, weekday, band, time: null, raw: text };
   }
 
   // 회차가 12월인데 1월이 적혔다면 다음 해로 봅니다.
   const year = refMonth === 12 && month === 1 ? refYear + 1 : refYear;
   const probe = new Date(Date.UTC(year, month - 1, day));
   if (probe.getUTCMonth() !== month - 1) {
-    return { date: null, weekday, band, raw: text };
+    return { date: null, weekday, band, time: null, raw: text };
   }
 
   return {
     date: `${year}-${pad(month)}-${pad(day)}`,
     weekday: probe.getUTCDay(),
     band,
+    time: null,
     raw: text,
   };
 }
