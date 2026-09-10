@@ -6,6 +6,7 @@ import { QUESTION_BY_CODE } from "@/lib/questions";
 import { formatScore, scoreTone } from "@/lib/score";
 import { loadTextAnswers, loadVisibleResponses } from "@/lib/queries";
 import { VISIBILITY_LABEL } from "@/lib/mail";
+import DeleteResponseButton from "@/components/DeleteResponseButton";
 
 export const dynamic = "force-dynamic";
 
@@ -83,7 +84,7 @@ export default async function ResponsesPage({
             <p className="px-6 py-10 text-center text-sm text-muted">조건에 맞는 응답이 없습니다.</p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[720px] text-sm">
+              <table className="w-full min-w-[800px] text-sm">
                 <thead>
                   <tr className="border-b border-line bg-gray-50 text-left text-xs text-muted">
                     <th className="px-4 py-2.5 font-semibold">제출자</th>
@@ -92,6 +93,7 @@ export default async function ResponsesPage({
                     <th className="px-4 py-2.5 font-semibold">종합 점수</th>
                     <th className="px-4 py-2.5 font-semibold">열람 범위</th>
                     <th className="px-4 py-2.5 font-semibold">제출 시각</th>
+                    <th className="px-4 py-2.5 text-right font-semibold">관리</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -119,6 +121,13 @@ export default async function ResponsesPage({
                         </td>
                         <td className="px-4 py-3 text-xs tabular-nums text-muted">
                           {formatDateTime(row.submitted_at)}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <DeleteResponseButton
+                            id={row.id}
+                            name={row.respondent_name}
+                            period={formatPeriod(row.period)}
+                          />
                         </td>
                       </tr>
                     );

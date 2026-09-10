@@ -34,6 +34,9 @@ export default function SurveyForm({ departments, periodLabel }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [touched, setTouched] = useState(false);
 
+  // 화면에 놓인 순서대로 편 전체 문항. "다음 문항" 을 찾는 기준입니다.
+  const ordered = useMemo(() => SECTIONS.flatMap((s) => questionsOfSection(s.code)), []);
+
   // 보기를 고르는 문항이 아니면서 반드시 채워야 하는 항목(서술형·면담 일시).
   const requiredTexts = useMemo(
     () =>
@@ -52,6 +55,24 @@ export default function SurveyForm({ departments, periodLabel }: Props) {
   const missingProfile = !name.trim() || !departmentId;
   const firstUnanswered = ANSWERABLE_REQUIRED.find((q) => !choices[q.code]);
   const firstEmptyText = requiredTexts.find((q) => !(texts[q.code] ?? "").trim());
+
+  /**
+   * 보기를 고르면 다음 문항으로 부드럽게 넘어갑니다.
+   * 이미 고른 답을 고치는 중일 때는 움직이지 않습니다.
+   * 검토하려고 되돌아온 사람에게 화면이 튀면 오히려 방해가 됩니다.
+   */
+  function advanceFrom(code: string) {
+    const next = ordered[ordered.findIndex((q) => q.code === code) + 1];
+    if (!next) return;
+    // 선택 표시(animate-pop)가 보인 뒤에 움직여야 무엇을 골랐는지 눈에 남습니다.
+    window.setTimeout(() => scrollTo(`q-${next.code}`), 220);
+  }
+
+  function pick(question: Question, value: number) {
+    const first = !choices[question.code];
+    setChoices((prev) => ({ ...prev, [question.code]: value }));
+    if (first) advanceFrom(question.code);
+  }
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -315,7 +336,7 @@ export default function SurveyForm({ departments, periodLabel }: Props) {
                         showAnchors={
                           questions.findIndex((q) => q.type === "scale5") === questionIndex
                         }
-                        onChange={(v) => setChoices((prev) => ({ ...prev, [question.code]: v }))}
+                        onChange={(v) => pick(question, v)}
                       />
                     ) : (
                       <ChoiceRow
@@ -323,7 +344,7 @@ export default function SurveyForm({ departments, periodLabel }: Props) {
                         question={question}
                         value={choices[question.code]}
                         invalid={touched && !choices[question.code]}
-                        onChange={(v) => setChoices((prev) => ({ ...prev, [question.code]: v }))}
+                        onChange={(v) => pick(question, v)}
                       />
                     ),
                   )}
@@ -372,7 +393,10 @@ export default function SurveyForm({ departments, periodLabel }: Props) {
 }
 
 function scrollTo(id: string) {
-  document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "center" });
+  const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  document
+    .getElementById(id)
+    ?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "center" });
 }
 
 function Required() {
