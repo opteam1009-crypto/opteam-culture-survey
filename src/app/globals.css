@@ -79,3 +79,27 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/*
+  인쇄(PDF 저장) 화면.
+  보기 1~5 칸은 print:hidden 으로 각 컴포넌트에서 빠지고, 여기서는 종이에 맞게
+  배경과 여백만 정리합니다. 화면용 그림자와 회색 바탕은 잉크만 먹습니다.
+*/
+@media print {
+  html,
+  body {
+    background: #ffffff;
+  }
+  .card {
+    border-color: #d4d4d4;
+    box-shadow: none;
+  }
+  /* 문항·섹션이 페이지 경계에서 잘리지 않도록 (Tailwind break-inside-avoid 와 함께) */
+  section,
+  header {
+    break-inside: avoid;
+  }
+  @page {
+    margin: 14mm 12mm;
+  }
+}

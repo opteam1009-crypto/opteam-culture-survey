@@ -7,6 +7,7 @@ import { formatScore, scoreTone } from "@/lib/score";
 import { loadResponseDetail } from "@/lib/queries";
 import { VISIBILITY_LABEL } from "@/lib/mail";
 import ResponseSheet, { type SheetAnswer } from "@/components/ResponseSheet";
+import PrintButton from "@/components/PrintButton";
 
 export const dynamic = "force-dynamic";
 
@@ -25,11 +26,14 @@ export default async function ResponseDetailPage({ params }: { params: { id: str
 
   return (
     <div className="space-y-5">
-      <Link href="/dashboard/responses" className="text-xs font-semibold text-brand">
-        ← 응답 목록
-      </Link>
+      <div className="flex items-center justify-between gap-3 print:hidden">
+        <Link href="/dashboard/responses" className="text-xs font-semibold text-brand">
+          ← 응답 목록
+        </Link>
+        <PrintButton />
+      </div>
 
-      <header className="card p-7">
+      <header className="card break-inside-avoid p-7">
         <div className="flex flex-wrap items-start justify-between gap-5">
           <div className="min-w-0">
             <h1 className="text-2xl font-bold">
@@ -58,7 +62,7 @@ export default async function ResponseDetailPage({ params }: { params: { id: str
         </div>
 
         {/* 점수를 매기는 5개 영역. 칸 수를 영역 수와 맞춰 빈칸 없이 고르게 놓습니다. */}
-        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 print:grid-cols-5 print:gap-2">
           {scoredSections.map((section) => {
             const score = detail.section_scores[section.code] ?? null;
             const sectionTone = scoreTone(score);
@@ -88,7 +92,7 @@ export default async function ResponseDetailPage({ params }: { params: { id: str
         요약표 아래에 두어, 화면 위로 올라가는 순간부터 상단에 붙어 따라옵니다.
         sticky 는 조상에 overflow 가 걸리면 동작하지 않으니 이 위치를 유지하세요.
       */}
-      <div className="sticky top-0 z-20 rounded-xl border border-line bg-white px-4 py-3 shadow-[0_4px_12px_-4px_rgba(16,24,40,0.18)]">
+      <div className="sticky top-0 z-20 rounded-xl border border-line bg-white px-4 py-3 shadow-[0_4px_12px_-4px_rgba(16,24,40,0.18)] print:hidden">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
           <span className="text-[15px] font-bold">{detail.respondent_name}</span>
           <span className="text-sm font-medium text-muted">{detail.department_name}</span>

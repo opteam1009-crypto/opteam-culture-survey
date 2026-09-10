@@ -23,7 +23,7 @@ export default async function SecureLayout({ children }: { children: React.React
 
   return (
     <div className="min-h-screen">
-      <header className="border-b border-line bg-white">
+      <header className="border-b border-line bg-white print:hidden">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-3 px-5 py-3.5">
           <Link href="/dashboard" className="text-sm font-bold">
             사내 진단 대시보드
@@ -53,7 +53,7 @@ export default async function SecureLayout({ children }: { children: React.React
           </div>
         </div>
       </header>
-      <main className="mx-auto max-w-6xl px-5 py-7">{children}</main>
+      <main className="mx-auto max-w-6xl px-5 py-7 print:max-w-none print:px-0 print:py-0">{children}</main>
     </div>
   );
 }

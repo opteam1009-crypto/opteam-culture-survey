@@ -34,7 +34,7 @@ export default function ResponseSheet({ answers }: { answers: Answers }) {
         const firstScaleIndex = questions.findIndex((q) => q.type === "scale5");
 
         return (
-          <section key={section.code} className="card overflow-hidden">
+          <section key={section.code} className="card break-inside-avoid overflow-hidden">
             <header className="flex items-start gap-3.5 border-b border-line bg-brandTint px-6 py-4">
               {/* 배지 높이(28px)와 제목의 첫 줄 높이를 맞춰야 위아래로 뜨지 않습니다. */}
               <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-brand text-xs font-bold tabular-nums text-white">
@@ -53,9 +53,9 @@ export default function ResponseSheet({ answers }: { answers: Answers }) {
               )}
             </header>
 
-            <div className="px-6 pb-5 pt-1">
+            <div className="px-6 pb-5 pt-1 print:pb-2">
               {showScale && (
-                <div className="mt-4 flex flex-wrap gap-2 rounded-xl border border-line bg-gray-50/80 px-4 py-3">
+                <div className="mt-4 flex flex-wrap gap-2 rounded-xl border border-line bg-gray-50/80 px-4 py-3 print:hidden">
                   {labels.map((l) => (
                     <span
                       key={l.value}
@@ -151,10 +151,10 @@ function ScaleAnswer({
   const selected = labels.find((l) => l.value === value)?.label ?? null;
 
   return (
-    <div className="py-5">
+    <div className="break-inside-avoid py-5 print:py-2">
       <QuestionHead question={question} selected={selected} />
 
-      <div className="mt-3.5 grid grid-cols-5 gap-2">
+      <div className="mt-3.5 grid grid-cols-5 gap-2 print:hidden">
         {labels.map((option) => {
           const active = value === option.value;
           return (
@@ -174,7 +174,7 @@ function ScaleAnswer({
         })}
       </div>
       {showAnchors && (
-        <div className="mt-2 flex justify-between text-[14px] font-medium text-ink/75">
+        <div className="mt-2 flex justify-between text-[14px] font-medium text-ink/75 print:hidden">
           <span>{labels[0]?.label}</span>
           <span>{labels[labels.length - 1]?.label}</span>
         </div>
@@ -188,10 +188,10 @@ function ChoiceAnswer({ question, value }: { question: Question; value: number |
   const selected = options.find((o) => o.value === value)?.label ?? null;
 
   return (
-    <div className="py-5">
+    <div className="break-inside-avoid py-5 print:py-2">
       <QuestionHead question={question} selected={selected} />
 
-      <div className="mt-3.5 space-y-2">
+      <div className="mt-3.5 space-y-2 print:hidden">
         {options.map((option) => {
           const active = value === option.value;
           return (
@@ -229,7 +229,7 @@ function TextAnswer({ question, value }: { question: Question; value: string }) 
   const display = question.type === "datetime" ? formatSlot(text) : text;
 
   return (
-    <div className="py-5">
+    <div className="break-inside-avoid py-5 print:py-2.5">
       <p className="text-[15px] font-medium leading-relaxed text-ink">
         {number && <span className="mr-1.5 tabular-nums text-muted">{number}.</span>}
         {question.prompt}
