@@ -46,7 +46,6 @@ export default async function DashboardPage({
       : fallbackPeriod;
 
   const rows = all.filter((r) => r.period === period);
-  const visibleRows = visible.filter((r) => r.period === period);
   const prev = previousPeriod(period);
   const prevRows = all.filter((r) => r.period === prev);
 
@@ -93,8 +92,6 @@ export default async function DashboardPage({
           <h1 className="text-xl font-bold">{formatPeriod(period)} 진단 현황</h1>
           <p className="mt-1 text-sm text-muted">
             아래 숫자는 열람 범위와 무관하게 제출된 {rows.length}건 전부를 집계한 것입니다.
-            이름이 붙는 목록은 {ROLE_LABEL[session.role]} 계정에 공개된 {visibleRows.length}건만
-            표시됩니다.
           </p>
         </div>
         <div className="flex items-center gap-3">

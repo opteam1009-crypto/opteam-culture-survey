@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ROLE_LABEL, readSession } from "@/lib/auth";
+import { readSession } from "@/lib/auth";
 import { formatDateTime, formatPeriod } from "@/lib/period";
 import { QUESTION_BY_CODE } from "@/lib/questions";
 import { formatScore, scoreTone } from "@/lib/score";
@@ -37,11 +37,6 @@ export default async function ResponsesPage({
     <div className="space-y-5">
       <header>
         <h1 className="text-xl font-bold">응답 열람</h1>
-        <p className="mt-1 text-sm text-muted">
-          {ROLE_LABEL[session.role]} 계정에 공개된 응답만 표시됩니다. 응답자가 열람 범위를 다르게
-          지정한 응답은 이 목록에 나오지 않습니다. 다만 현황 화면의 평균·건수 같은 숫자에는
-          전원이 반영됩니다.
-        </p>
       </header>
 
       <div className="card p-4">
