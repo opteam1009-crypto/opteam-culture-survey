@@ -1,4 +1,3 @@
-import Link from "next/link";
 import SurveyForm, { type DepartmentOption } from "@/components/SurveyForm";
 import { hasDatabaseUrl } from "@/lib/db";
 import { loadActiveDepartments } from "@/lib/queries";
@@ -26,17 +25,15 @@ export default async function SurveyPage() {
       {/* ── 표지 ───────────────────────────────────────────── */}
       <header className="card mb-4 overflow-hidden">
         <div className="relative bg-gradient-to-br from-brand via-[#24589f] to-accent px-7 py-8 text-white">
-          <div className="flex items-start justify-between gap-4">
-            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/70">
-              Monthly Organization Condition Survey
-            </p>
-            <Link
-              href="/dashboard"
-              className="shrink-0 rounded-lg border border-white/25 px-2.5 py-1 text-[11px] font-semibold text-white/80 transition hover:bg-white/15 hover:text-white"
-            >
-              대시보드
-            </Link>
-          </div>
+          {/*
+            대시보드 입구는 이 화면에 두지 않습니다. 설문 링크는 전 구성원에게
+            공유되는데, 관리자 입구가 함께 보이면 눌러보게 되고 열람 권한이
+            있는 것처럼 오해를 삽니다. 대표이사·인사책임자는 /dashboard 를
+            즐겨찾기해 두고 들어옵니다.
+          */}
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/70">
+            Monthly Organization Condition Survey
+          </p>
           <p className="mt-5 text-[15px] text-white/85">지난 한 달, 회사생활 어떠셨나요?</p>
           <h1 className="mt-1.5 text-[26px] font-bold leading-tight sm:text-[30px]">
             {periodLabel} 조직 컨디션 설문
