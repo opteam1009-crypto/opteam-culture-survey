@@ -230,7 +230,9 @@ export default function SurveyForm({ departments, periodLabel }: Props) {
                 인사책임자를 거치지 않고 대표이사에게 직접 전달하고 싶다면{" "}
                 <b className="text-ink">「대표이사만 열람」</b>을, 반대로 대표이사에게는 알리지 않고
                 인사책임자와만 이야기하고 싶다면 <b className="text-ink">「인사책임자만 열람」</b>을
-                선택해 주세요. 선택하신 범위 밖의 사람에게는 이 응답이 표시되지 않습니다.
+                선택해 주세요. 선택하신 범위 밖의 사람에게는 <b className="text-ink">응답 내용과
+                이름이 표시되지 않습니다.</b> 다만 회사 전체 평균·응답 건수 같은 통계에는 누구의
+                것인지 알 수 없는 형태로 함께 반영됩니다.
               </p>
             </div>
           </div>

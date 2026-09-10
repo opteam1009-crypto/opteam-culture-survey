@@ -199,13 +199,13 @@ export const VISIBILITY_OPTIONS = [
   {
     value: "ceo_only",
     title: "대표이사만 열람",
-    hint: "인사책임자는 이 응답을 볼 수 없습니다.",
+    hint: "인사책임자는 응답 내용을 볼 수 없습니다.",
     lock: true,
   },
   {
     value: "hr_only",
     title: "인사책임자만 열람",
-    hint: "대표이사는 이 응답을 볼 수 없습니다.",
+    hint: "대표이사는 응답 내용을 볼 수 없습니다.",
     lock: true,
   },
 ];

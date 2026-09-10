@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ROLE_LABEL, readSession } from "@/lib/auth";
+import { ROLE_LABEL, VISIBLE_TO, readSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { currentPeriod, formatDateTime, formatPeriod, previousPeriod } from "@/lib/period";
 import { SCORED_SECTION_CODES, SECTIONS } from "@/lib/questions";
@@ -31,7 +31,12 @@ export default async function DashboardPage({
   const session = await readSession();
   if (!session) redirect("/dashboard/login");
 
-  const all = await loadVisibleResponses(session.role);
+  // 집계(평균·건수·분포)는 열람 범위와 무관하게 전원을 셉니다. 한 사람이
+  // 「대표이사만」을 골랐다고 회사 전체 평균에서 빠지면 숫자가 실제와 달라집니다.
+  // 반면 이름이 붙는 목록은 계정 범위 안에서만 보여야 하므로 따로 걸러 씁니다.
+  // 질의를 두 번 하지 않으려고 한 번 읽고 나눕니다.
+  const all = await loadVisibleResponses("all");
+  const visible = all.filter((r) => VISIBLE_TO[session.role].includes(r.visibility));
   const periodSummaries = summarizeByPeriod(all);
   const knownPeriods = periodSummaries.map((p) => p.period);
   const fallbackPeriod = knownPeriods[knownPeriods.length - 1] ?? currentPeriod();
@@ -41,6 +46,7 @@ export default async function DashboardPage({
       : fallbackPeriod;
 
   const rows = all.filter((r) => r.period === period);
+  const visibleRows = visible.filter((r) => r.period === period);
   const prev = previousPeriod(period);
   const prevRows = all.filter((r) => r.period === prev);
 
@@ -58,8 +64,8 @@ export default async function DashboardPage({
   // 서로 의존하지 않는 질의라 순서대로 기다릴 이유가 없습니다.
   // 왕복이 직렬로 쌓이면 원격 DB 에서는 그대로 체감 지연이 됩니다.
   const [questions, riskBreakdown, flagged] = await Promise.all([
-    loadQuestionAverages(session.role, period),
-    loadRiskBreakdown(session.role, period),
+    loadQuestionAverages("all", period),
+    loadRiskBreakdown("all", period),
     loadFlaggedAnswers(session.role, period),
   ]);
   const weakest = [...questions].sort((a, b) => (a.score ?? 0) - (b.score ?? 0)).slice(0, 5);
@@ -86,7 +92,9 @@ export default async function DashboardPage({
         <div>
           <h1 className="text-xl font-bold">{formatPeriod(period)} 진단 현황</h1>
           <p className="mt-1 text-sm text-muted">
-            {ROLE_LABEL[session.role]} 계정으로 열람 가능한 응답 {rows.length}건 기준입니다.
+            아래 숫자는 열람 범위와 무관하게 제출된 {rows.length}건 전부를 집계한 것입니다.
+            이름이 붙는 목록은 {ROLE_LABEL[session.role]} 계정에 공개된 {visibleRows.length}건만
+            표시됩니다.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -237,7 +245,7 @@ export default async function DashboardPage({
           </Link>
         </div>
         <ul className="divide-y divide-line">
-          {all.slice(0, 6).map((row) => {
+          {visible.slice(0, 6).map((row) => {
             const tone = scoreTone(row.overall_score);
             return (
               <li key={row.id}>

@@ -11,6 +11,23 @@ import {
 } from "@/lib/questions";
 import { meanOf, toHundred } from "@/lib/score";
 
+/**
+ * 조회 범위.
+ * - "ceo" / "hr" — 그 계정에 공개된 응답만. 이름·답변 내용이 드러나는 곳에 씁니다.
+ * - "all"        — 열람 범위와 무관하게 전부. 개인이 드러나지 않는 집계(평균·건수·분포)에만 씁니다.
+ *
+ * 응답자에게 약속한 것은 "내용을 누가 읽는가" 이므로, 이름이 붙는 목록과
+ * 답변 원문은 반드시 계정 범위로 좁혀야 합니다. 평균에 익명으로 섞이는 것과
+ * 내용을 읽히는 것은 다릅니다.
+ */
+export type Scope = Role | "all";
+
+const EVERY_VISIBILITY = ["both", "ceo_only", "hr_only"];
+
+export function allowedVisibilities(scope: Scope): string[] {
+  return scope === "all" ? EVERY_VISIBILITY : VISIBLE_TO[scope];
+}
+
 /** 부서 목록 캐시를 비울 때 쓰는 태그. 설정에서 부서를 고치면 이 태그를 무효화합니다. */
 export const DEPARTMENTS_TAG = "departments";
 
@@ -41,13 +58,13 @@ export interface DepartmentRow {
  * 대표이사 계정과 인사책임자 계정의 숫자가 서로 다를 수 있습니다.
  * 이는 응답자에게 약속한 열람 범위를 집계에서도 지키기 위한 의도된 동작입니다.
  */
-export async function loadVisibleResponses(role: Role): Promise<ResponseRow[]> {
+export async function loadVisibleResponses(scope: Scope): Promise<ResponseRow[]> {
   await ensureSchema();
   const rows = (await sql()`
     select id, period, respondent_name, department_id, department_name, visibility,
            risk_level, is_demo, overall_score, section_scores, submitted_at
       from survey_responses
-     where visibility = any(${VISIBLE_TO[role]})
+     where visibility = any(${allowedVisibilities(scope)})
      order by submitted_at desc
   `) as ResponseRow[];
 
@@ -179,7 +196,7 @@ export interface QuestionAverage {
 
 /** 선택한 회차의 문항별 평균. 응답 건수가 0이면 빈 배열입니다. */
 export async function loadQuestionAverages(
-  role: Role,
+  scope: Scope,
   period: string,
 ): Promise<QuestionAverage[]> {
   await ensureSchema();
@@ -189,7 +206,7 @@ export async function loadQuestionAverages(
       join survey_responses r on r.id = a.response_id
      where a.value_num is not null
        and r.period = ${period}
-       and r.visibility = any(${VISIBLE_TO[role]})
+       and r.visibility = any(${allowedVisibilities(scope)})
      group by a.question_code
   `) as { question_code: string; mean: number; n: number }[];
 
@@ -227,7 +244,7 @@ export async function loadTextAnswers(role: Role, period?: string): Promise<Text
       join survey_responses r on r.id = a.response_id
      where a.value_text is not null
        and a.value_text <> ''
-       and r.visibility = any(${VISIBLE_TO[role]})
+       and r.visibility = any(${allowedVisibilities(role)})
        and (${period ?? null}::text is null or r.period = ${period ?? null})
      order by r.submitted_at desc
   `) as {
@@ -266,7 +283,7 @@ export async function loadResponseDetail(
              risk_level, is_demo, overall_score, section_scores, submitted_at
         from survey_responses
        where id = ${id}::uuid
-         and visibility = any(${VISIBLE_TO[role]})
+         and visibility = any(${allowedVisibilities(role)})
     ` as Promise<ResponseRow[]>,
     sql()`
       select question_code, value_num, value_text
@@ -343,7 +360,7 @@ export interface RiskBreakdown {
 }
 
 /** 선택한 회차의 리스크 문항 응답 분포. */
-export async function loadRiskBreakdown(role: Role, period: string): Promise<RiskBreakdown[]> {
+export async function loadRiskBreakdown(scope: Scope, period: string): Promise<RiskBreakdown[]> {
   await ensureSchema();
   const rows = (await sql()`
     select a.question_code, a.value_num, count(*)::int as n
@@ -351,7 +368,7 @@ export async function loadRiskBreakdown(role: Role, period: string): Promise<Ris
       join survey_responses r on r.id = a.response_id
      where a.value_num is not null
        and r.period = ${period}
-       and r.visibility = any(${VISIBLE_TO[role]})
+       and r.visibility = any(${allowedVisibilities(scope)})
      group by a.question_code, a.value_num
   `) as { question_code: string; value_num: number; n: number }[];
 
@@ -400,7 +417,7 @@ export async function loadInterviewRequests(
       join survey_answers a on a.response_id = r.id
      where a.question_code in ('interview_first','interview_second','interview_topic')
        and a.value_text is not null
-       and r.visibility = any(${VISIBLE_TO[role]})
+       and r.visibility = any(${allowedVisibilities(role)})
        and (${period ?? null}::text is null or r.period = ${period ?? null})
      order by r.submitted_at desc
   `) as {
@@ -456,7 +473,7 @@ export async function loadFlaggedAnswers(role: Role, period: string): Promise<Fl
       join survey_responses r on r.id = a.response_id
      where a.value_num is not null
        and r.period = ${period}
-       and r.visibility = any(${VISIBLE_TO[role]})
+       and r.visibility = any(${allowedVisibilities(role)})
        and a.question_code = any(${RISK_QUESTIONS.map((q) => q.code)})
      order by r.submitted_at desc
   `) as {
