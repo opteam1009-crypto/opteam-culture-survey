@@ -5,6 +5,7 @@ import { formatDateTime, formatPeriod } from "@/lib/period";
 import { loadInterviewRequests, loadVisibleResponses } from "@/lib/queries";
 import { WEEKDAY_LABELS, parseSlot } from "@/lib/schedule";
 import InterviewCalendar, { type CalendarEntry } from "@/components/InterviewCalendar";
+import InterviewScheduleControls from "@/components/InterviewScheduleControls";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +37,12 @@ export default async function InterviewsPage({
       ceoOnly: item.visibility === "ceo_only",
       topic: item.topic,
     };
+    // 취소된 면담은 달력에서 뺍니다. 목록에는 취소 표시와 함께 남습니다.
+    if (item.status === "cancelled") return [];
+    // 확정됐으면 희망 두 건 대신 확정된 한 건만 놓습니다.
+    if (item.status === "confirmed" && item.scheduledAt) {
+      return [{ ...base, rank: 1 as const, confirmed: true, ...parseSlot(item.scheduledAt, period) }];
+    }
     const slots: CalendarEntry[] = [];
     if (item.first) {
       slots.push({ ...base, rank: 1, ...parseSlot(item.first, period) });
@@ -91,7 +98,7 @@ export default async function InterviewsPage({
       ) : (
         <section className="card overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[780px] text-sm">
+            <table className="w-full min-w-[1000px] text-sm">
               <thead>
                 <tr className="border-b border-line bg-gray-50 text-left text-xs text-muted">
                   <th className="px-4 py-2.5 font-semibold">이름</th>
@@ -100,6 +107,7 @@ export default async function InterviewsPage({
                   <th className="px-4 py-2.5 font-semibold">2순위 일시</th>
                   <th className="px-4 py-2.5 font-semibold">면담 주제</th>
                   <th className="px-4 py-2.5 font-semibold">면담자</th>
+                  <th className="px-4 py-2.5 font-semibold">면담 일정</th>
                 </tr>
               </thead>
               <tbody>
@@ -136,6 +144,20 @@ export default async function InterviewsPage({
                           ? "🔒 인사책임자"
                           : "대표이사 + 인사책임자"}
                     </td>
+                    <td className="px-4 py-3 align-top">
+                      <ScheduleBadge status={item.status} when={item.scheduledAt} period={period} />
+                      <div className="mt-1.5">
+                        <InterviewScheduleControls
+                          responseId={item.responseId}
+                          name={item.name}
+                          status={item.status}
+                          scheduledAt={item.scheduledAt}
+                          first={item.first}
+                          second={item.second}
+                          updatedBy={item.updatedBy}
+                        />
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -150,6 +172,36 @@ export default async function InterviewsPage({
         </p>
       )}
     </div>
+  );
+}
+
+function ScheduleBadge({
+  status,
+  when,
+  period,
+}: {
+  status: "requested" | "confirmed" | "cancelled";
+  when: string | null;
+  period: string;
+}) {
+  if (status === "cancelled") {
+    return (
+      <span className="rounded px-1.5 py-0.5 text-[11px] font-semibold" style={{ background: "#f0efec", color: "#52514e" }}>
+        취소됨
+      </span>
+    );
+  }
+  if (status === "confirmed") {
+    return (
+      <span className="rounded px-1.5 py-0.5 text-[11px] font-semibold" style={{ background: "#e7f6e7", color: "#056b05" }}>
+        확정 {when ? formatSlot(when, period) : ""}
+      </span>
+    );
+  }
+  return (
+    <span className="rounded px-1.5 py-0.5 text-[11px] font-semibold" style={{ background: "#fdeee7", color: "#93441f" }}>
+      미확정
+    </span>
   );
 }
 

@@ -18,6 +18,8 @@ export interface CalendarEntry {
   topic: string;
   /** 1순위 = 1, 2순위 = 2 */
   rank: 1 | 2;
+  /** 관리자가 확정한 일정이면 순위 대신 "확정" 으로 표시합니다. */
+  confirmed?: boolean;
   date: string | null;
   weekday: number | null;
   band: TimeBand;
@@ -244,7 +246,7 @@ function PersonChip({ entry }: { entry: CalendarEntry }) {
         {entry.name}
       </span>
       <span className="mt-0.5 block truncate text-[11px] font-normal opacity-75">
-        {entry.rank}순위{when ? ` · ${when}` : ""}
+        {entry.confirmed ? "확정" : `${entry.rank}순위`}{when ? ` · ${when}` : ""}
       </span>
     </Link>
   );

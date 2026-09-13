@@ -192,6 +192,20 @@ async function runMigrations(): Promise<void> {
       blocked_until timestamptz
     );
 
+    /*
+      면담 일정 관리. 응답자가 적어낸 희망 일시(survey_answers)는 그대로 두고,
+      관리자가 잡은 확정 일시와 취소 여부만 여기에 따로 둡니다.
+      희망 일시를 덮어쓰면 "이 사람이 원래 언제를 원했는지" 가 사라집니다.
+      행이 없으면 아직 희망 상태, 있으면 확정 또는 취소입니다.
+    */
+    create table if not exists interview_schedules (
+      response_id  uuid primary key references survey_responses(id) on delete cascade,
+      status       text not null default 'confirmed',
+      scheduled_at text,
+      updated_by   text not null default '',
+      updated_at   timestamptz not null default now()
+    );
+
     create table if not exists notification_log (
       id          bigserial primary key,
       response_id uuid references survey_responses(id) on delete cascade,

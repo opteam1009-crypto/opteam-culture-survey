@@ -392,16 +392,25 @@ export async function loadRiskBreakdown(scope: Scope, period: string): Promise<R
   });
 }
 
+/** 관리자가 잡은 상태. 행이 없으면 아직 응답자가 적어낸 희망 상태입니다. */
+export type InterviewStatus = "requested" | "confirmed" | "cancelled";
+
 export interface InterviewRequest {
   responseId: string;
   name: string;
   department: string;
   visibility: string;
   riskLevel: number;
+  /** 응답자가 적어낸 1·2순위 희망 일시. 관리자가 일정을 바꿔도 그대로 남습니다. */
   first: string;
   second: string;
   topic: string;
   submittedAt: string;
+  status: InterviewStatus;
+  /** 확정된 경우의 'YYYY-MM-DD HH:MM'. */
+  scheduledAt: string | null;
+  updatedBy: string;
+  updatedAt: string | null;
 }
 
 /** 1:1 면담 희망 일시 목록. 인사담당자가 일정을 잡을 때 씁니다. */
@@ -445,6 +454,10 @@ export async function loadInterviewRequests(
         second: "",
         topic: "",
         submittedAt: row.submitted_at,
+        status: "requested",
+        scheduledAt: null,
+        updatedBy: "",
+        updatedAt: null,
       };
       byResponse.set(row.id, entry);
     }
@@ -452,7 +465,33 @@ export async function loadInterviewRequests(
     if (row.question_code === "interview_second") entry.second = row.value_text;
     if (row.question_code === "interview_topic") entry.topic = row.value_text;
   }
-  return [...byResponse.values()];
+
+  // 관리자가 잡아둔 일정을 덧입힙니다. 위 질의에 조인하면 답변 행마다 같은 값이
+  // 반복돼 그룹을 만드는 쪽이 지저분해지므로 따로 읽어 합칩니다.
+  const list = [...byResponse.values()];
+  if (list.length > 0) {
+    const schedules = (await sql()`
+      select response_id, status, scheduled_at, updated_by, updated_at
+        from interview_schedules
+       where response_id = any(${list.map((i) => i.responseId)}::uuid[])
+    `) as {
+      response_id: string;
+      status: string;
+      scheduled_at: string | null;
+      updated_by: string;
+      updated_at: string;
+    }[];
+    const byId = new Map(schedules.map((r) => [r.response_id, r]));
+    for (const item of list) {
+      const found = byId.get(item.responseId);
+      if (!found) continue;
+      item.status = found.status === "cancelled" ? "cancelled" : "confirmed";
+      item.scheduledAt = found.scheduled_at;
+      item.updatedBy = found.updated_by;
+      item.updatedAt = found.updated_at;
+    }
+  }
+  return list;
 }
 
 export interface FlaggedAnswer {
