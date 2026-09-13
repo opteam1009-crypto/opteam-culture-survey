@@ -227,12 +227,13 @@ export default function SurveyForm({ departments, periodLabel }: Props) {
                 })}
               </div>
               <p className="mt-3 rounded-xl bg-gray-50 px-4 py-3.5 text-[14px] leading-[1.75] text-ink/75">
-                인사책임자를 거치지 않고 대표이사에게 직접 전달하고 싶다면{" "}
-                <b className="text-ink">「대표이사만 열람」</b>을, 반대로 대표이사에게는 알리지 않고
+                대표이사에게 바로 닿게 하고 싶다면{" "}
+                <b className="text-ink">「대표이사에게 전달」</b>을, 대표이사에게는 알리지 않고
                 인사책임자와만 이야기하고 싶다면 <b className="text-ink">「인사책임자만 열람」</b>을
-                선택해 주세요. 선택하신 범위 밖의 사람에게는 <b className="text-ink">응답 내용과
-                이름이 표시되지 않습니다.</b> 다만 회사 전체 평균·응답 건수 같은 통계에는 누구의
-                것인지 알 수 없는 형태로 함께 반영됩니다.
+                선택해 주세요. <b className="text-ink">「인사책임자만 열람」</b>을 고르시면 대표이사에게는
+                응답 내용과 이름이 표시되지 않습니다. 인사책임자는 설문 운영을 맡고 있어 모든 응답을
+                열람합니다. 회사 전체 평균·응답 건수 같은 통계에는 누구의 것인지 알 수 없는 형태로
+                반영됩니다.
               </p>
             </div>
           </div>

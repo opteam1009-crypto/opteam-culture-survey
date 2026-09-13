@@ -198,9 +198,9 @@ export const VISIBILITY_OPTIONS = [
   },
   {
     value: "ceo_only",
-    title: "대표이사만 열람",
-    hint: "인사책임자는 응답 내용을 볼 수 없습니다.",
-    lock: true,
+    title: "대표이사에게 전달",
+    hint: "대표이사에게 직접 전달됩니다. 인사책임자도 열람합니다.",
+    lock: false,
   },
   {
     value: "hr_only",

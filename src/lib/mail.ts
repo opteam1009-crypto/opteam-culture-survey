@@ -14,7 +14,7 @@ export interface NotificationInput {
 
 export const VISIBILITY_LABEL: Record<string, string> = {
   both: "대표이사 + 인사책임자",
-  ceo_only: "대표이사만",
+  ceo_only: "대표이사에게 전달",
   hr_only: "인사책임자만",
 };
 
@@ -157,6 +157,97 @@ async function logNotification(
   } catch {
     // 로그 기록 실패가 제출을 막아서는 안 됩니다.
   }
+}
+
+export interface InterviewMailInput {
+  name: string;
+  department: string;
+  topic: string;
+  /** 'YYYY-MM-DD HH:MM'. 취소면 null. */
+  scheduledAt: string | null;
+  first: string;
+  second: string;
+  cancelled: boolean;
+  actedBy: string;
+  dashboardUrl: string;
+}
+
+/**
+ * 면담 일정을 확정·변경·취소했을 때 알림 메일을 보냅니다.
+ * 설문은 응답자의 메일 주소를 받지 않으므로 수신자는 NOTIFY_EMAILS(운영자)입니다.
+ * 발송에 실패해도 일정 저장을 되돌리지 않고, 내용은 notification_log 에 남습니다.
+ */
+export async function sendInterviewNotification(input: InterviewMailInput): Promise<void> {
+  const to = recipients();
+  const when = input.scheduledAt ? formatSlotForMail(input.scheduledAt) : null;
+  const subject = input.cancelled
+    ? `[면담 취소] ${input.department} ${input.name}`
+    : `[면담 확정] ${input.department} ${input.name} · ${when}`;
+
+  const lines = [
+    input.cancelled
+      ? `${input.department} ${input.name} 님의 1:1 면담이 취소되었습니다.`
+      : `${input.department} ${input.name} 님의 1:1 면담 일정이 확정되었습니다.`,
+    "",
+    ...(when ? [`면담 일시 : ${when}`] : []),
+    `면담 주제 : ${input.topic || "—"}`,
+    `희망 일시 : ${input.first || "—"}${input.second ? ` / ${input.second}` : ""}`,
+    `처리한 계정 : ${input.actedBy}`,
+    "",
+    `면담 일정 보기: ${input.dashboardUrl}`,
+  ];
+  const text = lines.join("\n");
+
+  const html = `<!doctype html><html lang="ko"><body style="margin:0;background:#f6f7f9;padding:24px;font-family:-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;color:#111827">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;margin:0 auto;background:#ffffff;border:1px solid #e5e7eb;border-radius:12px">
+<tr><td style="padding:24px">
+<div style="font-size:12px;font-weight:700;letter-spacing:.08em;color:${input.cancelled ? "#9c2b2b" : "#1f4d8f"}">${input.cancelled ? "면담 취소" : "면담 확정"}</div>
+<h1 style="margin:8px 0 16px;font-size:18px;line-height:1.5">${escapeHtml(input.department)} ${escapeHtml(input.name)} 님</h1>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;border-collapse:collapse">
+${when ? row("면담 일시", escapeHtml(when)) : ""}
+${row("면담 주제", escapeHtml(input.topic || "—"))}
+${row("희망 일시", escapeHtml(`${input.first || "—"}${input.second ? ` / ${input.second}` : ""}`))}
+${row("처리", escapeHtml(input.actedBy))}
+</table>
+<p style="margin:18px 0 0"><a href="${escapeAttr(input.dashboardUrl)}" style="display:inline-block;background:#1f4d8f;color:#ffffff;text-decoration:none;padding:11px 18px;border-radius:8px;font-size:14px;font-weight:600">면담 일정 보기</a></p>
+</td></tr></table></body></html>`;
+
+  const q = sql();
+  if (to.length === 0) {
+    await logNotification(q, null, "", subject, text, "skipped", "NOTIFY_EMAILS 미설정");
+    return;
+  }
+
+  let status = "pending";
+  let error: string | null = null;
+  try {
+    const mode = mailMode();
+    if (mode === "resend") await sendViaResend(to, subject, text, html);
+    else if (mode === "smtp") await sendViaSmtp(to, subject, text, html);
+    else {
+      status = "queued";
+      error = "발송 수단(RESEND_API_KEY 또는 SMTP_*)이 설정되지 않았습니다.";
+    }
+    if (!error) status = "sent";
+  } catch (err) {
+    status = "failed";
+    error = err instanceof Error ? err.message : String(err);
+  }
+  await logNotification(q, null, to.join(", "), subject, text, status, error);
+}
+
+/** 'YYYY-MM-DD HH:MM' → '2026년 9월 18일 (금) 오전 10:30' */
+function formatSlotForMail(value: string): string {
+  const m = value.match(/^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})$/);
+  if (!m) return value;
+  const [, y, mo, d, hh, mm] = m;
+  const weekday = ["일", "월", "화", "수", "목", "금", "토"][
+    new Date(`${y}-${mo}-${d}T00:00:00Z`).getUTCDay()
+  ];
+  const hour = Number(hh);
+  const half = hour < 12 ? "오전" : "오후";
+  const display = hour <= 12 ? hour : hour - 12;
+  return `${Number(y)}년 ${Number(mo)}월 ${Number(d)}일 (${weekday}) ${half} ${display}:${mm}`;
 }
 
 /** 지금 설정된 발송 수단. 어디에도 설정이 없으면 null. */

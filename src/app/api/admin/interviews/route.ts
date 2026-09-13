@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { ROLE_LABEL, VISIBLE_TO, readSession } from "@/lib/auth";
 import { ensureSchema, sql } from "@/lib/db";
 import { isValidInterviewSlot } from "@/lib/questions";
+import { sendInterviewNotification } from "@/lib/mail";
 
 export const dynamic = "force-dynamic";
 
@@ -52,9 +53,9 @@ export async function POST(request: Request) {
 
     // 이 계정이 볼 수 있는 응답인지 먼저 확인합니다.
     const allowed = (await q`
-      select id from survey_responses
+      select id, respondent_name, department_name from survey_responses
        where id = ${id}::uuid and visibility = any(${VISIBLE_TO[session.role]})
-    `) as { id: string }[];
+    `) as { id: string; respondent_name: string; department_name: string }[];
     if (allowed.length === 0) {
       return NextResponse.json(
         { error: "이 계정으로는 바꿀 수 없는 면담입니다." },
@@ -78,9 +79,38 @@ export async function POST(request: Request) {
         updated_by   = excluded.updated_by,
         updated_at   = now()
     `;
+    // 알림 발송은 실패해도 일정 저장을 되돌리지 않습니다.
+    const answers = (await q`
+      select question_code, value_text from survey_answers
+       where response_id = ${id}::uuid
+         and question_code in ('interview_first','interview_second','interview_topic')
+    `) as { question_code: string; value_text: string | null }[];
+    const pick = (code: string) =>
+      answers.find((a) => a.question_code === code)?.value_text ?? "";
+
+    await sendInterviewNotification({
+      name: allowed[0].respondent_name,
+      department: allowed[0].department_name,
+      topic: pick("interview_topic"),
+      scheduledAt: when,
+      first: pick("interview_first"),
+      second: pick("interview_second"),
+      cancelled: action === "cancel",
+      actedBy: ROLE_LABEL[session.role],
+      dashboardUrl: interviewsUrl(request),
+    });
+
     return NextResponse.json({ ok: true, status, scheduledAt: when });
   } catch (err) {
     console.error("[interviews] failed", err);
     return NextResponse.json({ error: "저장 중 오류가 발생했습니다." }, { status: 500 });
   }
+}
+
+function interviewsUrl(request: Request): string {
+  const explicit = process.env.APP_BASE_URL;
+  if (explicit) return `${explicit.replace(/\/$/, "")}/dashboard/interviews`;
+  const vercel = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL;
+  if (vercel) return `https://${vercel}/dashboard/interviews`;
+  return new URL("/dashboard/interviews", request.url).toString();
 }

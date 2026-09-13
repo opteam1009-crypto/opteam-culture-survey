@@ -10,9 +10,14 @@ export const ROLE_LABEL: Record<Role, string> = {
 };
 
 /** 각 역할이 열람할 수 있는 응답의 공개 범위. */
+/**
+ * 계정별로 내용과 이름을 볼 수 있는 응답의 열람 범위.
+ * 인사책임자는 운영을 맡으므로 전부 열람합니다.
+ * 대표이사는 「인사책임자만 열람」 을 고른 응답을 볼 수 없습니다.
+ */
 export const VISIBLE_TO: Record<Role, string[]> = {
   ceo: ["both", "ceo_only"],
-  hr: ["both", "hr_only"],
+  hr: ["both", "ceo_only", "hr_only"],
 };
 
 export const SESSION_COOKIE = "opteam_session";

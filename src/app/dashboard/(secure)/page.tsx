@@ -18,6 +18,7 @@ import TrendChart from "@/components/charts/TrendChart";
 import BarList from "@/components/charts/BarList";
 import Heatmap from "@/components/charts/Heatmap";
 import PeriodSelect from "@/components/PeriodSelect";
+import PrintButton from "@/components/PrintButton";
 
 export const dynamic = "force-dynamic";
 
@@ -94,7 +95,7 @@ export default async function DashboardPage({
             아래 숫자는 열람 범위와 무관하게 제출된 {rows.length}건 전부를 집계한 것입니다.
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 print:hidden">
           <PeriodSelect periods={[...knownPeriods].reverse()} current={period} basePath="/dashboard" />
           <a
             href={`/api/admin/export?period=${encodeURIComponent(period)}`}
@@ -102,11 +103,13 @@ export default async function DashboardPage({
           >
             CSV 내려받기
           </a>
+          {/* 저장 파일명: 진단현황_2026-09 */}
+          <PrintButton filename={`진단현황_${period}`} />
         </div>
       </header>
 
       {/* ── 요약 타일 ────────────────────────────────────── */}
-      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4 print:grid-cols-4">
         <ScoreTile label="종합 점수" score={overall} delta={delta} prevLabel={formatPeriod(prev)} />
         <Tile label="응답 건수" value={`${rows.length}`} unit="건" hint={`누적 ${all.length}건`} />
         <Tile

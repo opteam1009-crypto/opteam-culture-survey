@@ -94,10 +94,18 @@ body {
     border-color: #d4d4d4;
     box-shadow: none;
   }
-  /* 문항·섹션이 페이지 경계에서 잘리지 않도록 (Tailwind break-inside-avoid 와 함께) */
+  /* 문항·섹션·카드가 페이지 경계에서 잘리지 않도록 (Tailwind break-inside-avoid 와 함께) */
   section,
-  header {
+  header,
+  .card {
     break-inside: avoid;
+  }
+  /* 접어둔 상세(추이 표 등)는 인쇄에서 펼쳐 보여줍니다. */
+  details {
+    display: block;
+  }
+  details > summary {
+    display: none;
   }
   @page {
     margin: 14mm 12mm;
