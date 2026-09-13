@@ -206,6 +206,9 @@ async function runMigrations(): Promise<void> {
       updated_at   timestamptz not null default now()
     );
 
+    -- 같은 면담에 알림이 두 번 가지 않도록 보낸 시각을 남깁니다.
+    alter table interview_schedules add column if not exists reminder_sent_at timestamptz;
+
     create table if not exists notification_log (
       id          bigserial primary key,
       response_id uuid references survey_responses(id) on delete cascade,

@@ -236,6 +236,77 @@ ${row("처리", escapeHtml(input.actedBy))}
   await logNotification(q, null, to.join(", "), subject, text, status, error);
 }
 
+export interface ReminderItem {
+  name: string;
+  department: string;
+  topic: string;
+  scheduledAt: string;
+}
+
+/**
+ * 곧 있을 면담을 알려줍니다.
+ * - kind "soon"   : 1시간 뒤 면담 (건별)
+ * - kind "digest" : 오늘 예정된 면담 목록 (하루 1회)
+ * 수신자는 NOTIFY_EMAILS(운영자)입니다. 설문은 응답자 메일 주소를 받지 않습니다.
+ */
+export async function sendInterviewReminder(
+  kind: "soon" | "digest",
+  items: ReminderItem[],
+  dashboardUrl: string,
+): Promise<{ status: string; error: string | null }> {
+  const to = recipients();
+  const subject =
+    kind === "soon"
+      ? `[면담 곧 시작] ${items.map((i) => `${i.department} ${i.name}`).join(", ")}`
+      : `[오늘의 면담] ${items.length}건`;
+
+  const lines = [
+    kind === "soon" ? "곧 시작되는 1:1 면담입니다." : "오늘 예정된 1:1 면담입니다.",
+    "",
+    ...items.map(
+      (i) => `· ${formatSlotForMail(i.scheduledAt)} — ${i.department} ${i.name}${i.topic ? ` (${i.topic})` : ""}`,
+    ),
+    "",
+    `면담 일정 보기: ${dashboardUrl}`,
+  ];
+  const text = lines.join("\n");
+
+  const html = `<!doctype html><html lang="ko"><body style="margin:0;background:#f6f7f9;padding:24px;font-family:-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;color:#111827">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;margin:0 auto;background:#ffffff;border:1px solid #e5e7eb;border-radius:12px">
+<tr><td style="padding:24px">
+<div style="font-size:12px;font-weight:700;letter-spacing:.08em;color:#1f4d8f">${kind === "soon" ? "면담 곧 시작" : "오늘의 면담"}</div>
+<h1 style="margin:8px 0 16px;font-size:18px;line-height:1.5">${kind === "soon" ? "1시간 뒤 면담이 있습니다" : `오늘 면담 ${items.length}건`}</h1>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;border-collapse:collapse">
+${items.map((i) => row(escapeHtml(formatSlotForMail(i.scheduledAt)), `${escapeHtml(i.department)} ${escapeHtml(i.name)}${i.topic ? ` <span style="font-weight:400;color:#6b7280">(${escapeHtml(i.topic)})</span>` : ""}`)).join("")}
+</table>
+<p style="margin:18px 0 0"><a href="${escapeAttr(dashboardUrl)}" style="display:inline-block;background:#1f4d8f;color:#ffffff;text-decoration:none;padding:11px 18px;border-radius:8px;font-size:14px;font-weight:600">면담 일정 보기</a></p>
+</td></tr></table></body></html>`;
+
+  const q = sql();
+  if (to.length === 0) {
+    await logNotification(q, null, "", subject, text, "skipped", "NOTIFY_EMAILS 미설정");
+    return { status: "skipped", error: "NOTIFY_EMAILS 미설정" };
+  }
+
+  let status = "pending";
+  let error: string | null = null;
+  try {
+    const mode = mailMode();
+    if (mode === "resend") await sendViaResend(to, subject, text, html);
+    else if (mode === "smtp") await sendViaSmtp(to, subject, text, html);
+    else {
+      status = "queued";
+      error = "발송 수단(RESEND_API_KEY 또는 SMTP_*)이 설정되지 않았습니다.";
+    }
+    if (!error) status = "sent";
+  } catch (err) {
+    status = "failed";
+    error = err instanceof Error ? err.message : String(err);
+  }
+  await logNotification(q, null, to.join(", "), subject, text, status, error);
+  return { status, error };
+}
+
 /** 'YYYY-MM-DD HH:MM' → '2026년 9월 18일 (금) 오전 10:30' */
 function formatSlotForMail(value: string): string {
   const m = value.match(/^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})$/);
