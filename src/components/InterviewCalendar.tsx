@@ -8,6 +8,8 @@ import {
   buildMonthGrid,
   type TimeBand,
 } from "@/lib/schedule";
+import type { InterviewStatus } from "@/lib/queries";
+import InterviewScheduleControls from "./InterviewScheduleControls";
 
 export interface CalendarEntry {
   responseId: string;
@@ -20,6 +22,11 @@ export interface CalendarEntry {
   rank: 1 | 2;
   /** 관리자가 확정한 일정이면 순위 대신 "확정" 으로 표시합니다. */
   confirmed?: boolean;
+  /** 칩을 눌렀을 때 그 자리에서 일정을 바꾸기 위해 함께 싣습니다. */
+  status: InterviewStatus;
+  scheduledAt: string | null;
+  first: string;
+  second: string;
   date: string | null;
   weekday: number | null;
   band: TimeBand;
@@ -39,6 +46,9 @@ export default function InterviewCalendar({
 }) {
   const [refYear, refMonth] = period.split("-").map(Number);
   const [cursor, setCursor] = useState({ year: refYear, month: refMonth });
+  // 칩을 누르면 달력 아래에 그 사람의 일정 조작 칸을 엽니다.
+  // 칸 안에 바로 펼치면 날짜 칸이 밀려 달력이 흐트러집니다.
+  const [picked, setPicked] = useState<string | null>(null);
 
   const grid = useMemo(
     () => buildMonthGrid(cursor.year, cursor.month),
@@ -56,6 +66,7 @@ export default function InterviewCalendar({
     return map;
   }, [entries]);
 
+  const pickedEntry = picked ? entries.find((e) => e.responseId === picked) : undefined;
   const weekdayOnly = entries.filter((e) => !e.date && e.weekday !== null);
   const unresolved = entries.filter((e) => !e.date && e.weekday === null);
   const datedCount = entries.filter((e) => e.date).length;
@@ -85,6 +96,49 @@ export default function InterviewCalendar({
           </p>
         </header>
 
+        {pickedEntry && (
+          <div className="border-t border-line bg-brandTint px-5 py-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[15px] font-bold">
+                  {pickedEntry.name}
+                  <span className="ml-2 text-sm font-medium text-muted">
+                    {pickedEntry.department}
+                  </span>
+                </p>
+                <p className="mt-0.5 text-xs text-muted">
+                  {pickedEntry.confirmed ? "확정" : `${pickedEntry.rank}순위 희망`}
+                  {pickedEntry.time ? ` · ${pickedEntry.time}` : ""}
+                  {pickedEntry.topic ? ` · ${pickedEntry.topic}` : ""}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <InterviewScheduleControls
+                  responseId={pickedEntry.responseId}
+                  name={pickedEntry.name}
+                  status={pickedEntry.status}
+                  scheduledAt={pickedEntry.scheduledAt}
+                  first={pickedEntry.first}
+                  second={pickedEntry.second}
+                />
+                <Link
+                  href={`/dashboard/responses/${pickedEntry.responseId}`}
+                  className="text-xs font-semibold text-brand hover:underline"
+                >
+                  응답 보기
+                </Link>
+                <button
+                  type="button"
+                  className="text-xs text-muted hover:text-ink"
+                  onClick={() => setPicked(null)}
+                  aria-label="닫기"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         <div className="overflow-x-auto">
           <div className="min-w-[760px]">
             <div className="grid grid-cols-7 border-b border-line bg-gray-50">
@@ -127,7 +181,14 @@ export default function InterviewCalendar({
                     </div>
                     <div className="space-y-1">
                       {items.map((item, j) => (
-                        <PersonChip key={`${item.responseId}-${item.rank}-${j}`} entry={item} />
+                        <PersonChip
+                          key={`${item.responseId}-${item.rank}-${j}`}
+                          entry={item}
+                          active={picked === item.responseId}
+                          onPick={() =>
+                            setPicked((v) => (v === item.responseId ? null : item.responseId))
+                          }
+                        />
                       ))}
                     </div>
                   </div>
@@ -136,6 +197,7 @@ export default function InterviewCalendar({
             </div>
           </div>
         </div>
+
       </section>
 
       {weekdayOnly.length > 0 && (
@@ -179,7 +241,14 @@ export default function InterviewCalendar({
                           >
                             <div className="space-y-1">
                               {cellItems.map((item, j) => (
-                                <PersonChip key={`${item.responseId}-${item.rank}-${j}`} entry={item} />
+                                <PersonChip
+                                  key={`${item.responseId}-${item.rank}-${j}`}
+                                  entry={item}
+                                  active={picked === item.responseId}
+                                  onPick={() =>
+                                    setPicked((v) => (v === item.responseId ? null : item.responseId))
+                                  }
+                                />
                               ))}
                             </div>
                           </td>
@@ -223,7 +292,15 @@ export default function InterviewCalendar({
   );
 }
 
-function PersonChip({ entry }: { entry: CalendarEntry }) {
+function PersonChip({
+  entry,
+  active,
+  onPick,
+}: {
+  entry: CalendarEntry;
+  active: boolean;
+  onPick: () => void;
+}) {
   const tone =
     entry.riskLevel >= 2
       ? { bg: "#fbeaea", ink: "#9c2b2b" }
@@ -235,10 +312,13 @@ function PersonChip({ entry }: { entry: CalendarEntry }) {
   const when = entry.time ?? (entry.band === "unknown" ? null : TIME_BAND_LABEL[entry.band]);
 
   return (
-    <Link
-      href={`/dashboard/responses/${entry.responseId}`}
+    <button
+      type="button"
+      onClick={onPick}
       title={`${entry.department} ${entry.name} · ${entry.rank}순위 · ${entry.raw}`}
-      className="block rounded px-2 py-1.5 text-xs font-semibold leading-tight transition hover:brightness-95"
+      className={`block w-full rounded px-2 py-1.5 text-left text-xs font-semibold leading-tight transition hover:brightness-95 ${
+        active ? "ring-2 ring-brand ring-offset-1" : ""
+      }`}
       style={{ background: tone.bg, color: tone.ink }}
     >
       <span className="block truncate">
@@ -248,6 +328,6 @@ function PersonChip({ entry }: { entry: CalendarEntry }) {
       <span className="mt-0.5 block truncate text-[11px] font-normal opacity-75">
         {entry.confirmed ? "확정" : `${entry.rank}순위`}{when ? ` · ${when}` : ""}
       </span>
-    </Link>
+    </button>
   );
 }

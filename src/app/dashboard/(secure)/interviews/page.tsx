@@ -25,7 +25,19 @@ export default async function InterviewsPage({
       : (periods[0] ?? "");
   const view = searchParams.view === "list" ? "list" : "calendar";
 
-  const requests = period ? await loadInterviewRequests(session.role, period) : [];
+  const loaded = period ? await loadInterviewRequests(session.role, period) : [];
+
+  // 면담 일정표는 날짜 순으로 읽혀야 합니다. 제출 순으로 두면 9월 3일 면담이
+  // 9월 20일 면담 아래에 오는 식이라 일정을 훑을 수가 없습니다.
+  // 확정 > 미확정(1순위 희망) 순으로 시간을 잡고, 취소된 건은 맨 아래로 내립니다.
+  const requests = [...loaded].sort((a, b) => {
+    if ((a.status === "cancelled") !== (b.status === "cancelled")) {
+      return a.status === "cancelled" ? 1 : -1;
+    }
+    const at = a.scheduledAt || a.first || a.second || "9999";
+    const bt = b.scheduledAt || b.first || b.second || "9999";
+    return at.localeCompare(bt);
+  });
 
   // 자유 입력에서 읽어낼 수 있는 날짜·요일·시간대를 뽑아 달력에 놓습니다.
   const entries: CalendarEntry[] = requests.flatMap((item) => {
@@ -36,6 +48,11 @@ export default async function InterviewsPage({
       riskLevel: item.riskLevel,
       ceoOnly: item.visibility === "ceo_only",
       topic: item.topic,
+      // 칩을 눌렀을 때 그 자리에서 일정을 바꾸기 위해 함께 실어 보냅니다.
+      status: item.status,
+      scheduledAt: item.scheduledAt,
+      first: item.first,
+      second: item.second,
     };
     // 취소된 면담은 달력에서 뺍니다. 목록에는 취소 표시와 함께 남습니다.
     if (item.status === "cancelled") return [];
@@ -98,22 +115,23 @@ export default async function InterviewsPage({
       ) : (
         <section className="card overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[1000px] text-sm">
+            <table className="w-full min-w-[720px] text-sm">
               <thead>
                 <tr className="border-b border-line bg-gray-50 text-left text-xs text-muted">
-                  <th className="px-4 py-2.5 font-semibold">이름</th>
-                  <th className="px-4 py-2.5 font-semibold">부서</th>
-                  <th className="px-4 py-2.5 font-semibold">1순위 일시</th>
-                  <th className="px-4 py-2.5 font-semibold">2순위 일시</th>
-                  <th className="px-4 py-2.5 font-semibold">면담 주제</th>
-                  <th className="px-4 py-2.5 font-semibold">면담자</th>
-                  <th className="px-4 py-2.5 font-semibold">면담 일정</th>
+                  <th className="px-4 py-2.5 font-semibold">면담 일시</th>
+                  <th className="px-4 py-2.5 font-semibold">이름 · 부서</th>
+                  <th className="px-4 py-2.5 font-semibold">주제</th>
+                  <th className="px-4 py-2.5 font-semibold">희망 일시</th>
+                  <th className="px-4 py-2.5 text-right font-semibold">관리</th>
                 </tr>
               </thead>
               <tbody>
                 {requests.map((item) => (
                   <tr key={item.responseId} className="border-b border-line/60 hover:bg-gray-50">
-                    <td className="px-4 py-3 font-medium">
+                    <td className="px-4 py-3 align-top">
+                      <ScheduleBadge status={item.status} when={item.scheduledAt} period={period} />
+                    </td>
+                    <td className="px-4 py-3 align-top font-medium">
                       <Link
                         href={`/dashboard/responses/${item.responseId}`}
                         className="text-brand hover:underline"
@@ -132,21 +150,18 @@ export default async function InterviewsPage({
                           {item.riskLevel >= 2 ? "확인 필요" : "주의"}
                         </span>
                       )}
+                      <p className="mt-0.5 text-xs font-normal text-muted">
+                        {item.department}
+                        {item.visibility === "hr_only" ? " · 🔒 인사책임자와만" : ""}
+                      </p>
                     </td>
-                    <td className="px-4 py-3 text-muted">{item.department}</td>
-                    <td className="px-4 py-3">{formatSlot(item.first, period)}</td>
-                    <td className="px-4 py-3 text-muted">{formatSlot(item.second, period)}</td>
-                    <td className="px-4 py-3 text-muted">{item.topic || "—"}</td>
-                    <td className="px-4 py-3 text-xs text-muted">
-                      {item.visibility === "ceo_only"
-                        ? "🔒 대표이사"
-                        : item.visibility === "hr_only"
-                          ? "🔒 인사책임자"
-                          : "대표이사 + 인사책임자"}
+                    <td className="px-4 py-3 align-top text-muted">{item.topic || "—"}</td>
+                    <td className="px-4 py-3 align-top text-xs text-muted">
+                      <p>{formatSlot(item.first, period)}</p>
+                      {item.second && <p className="mt-0.5">{formatSlot(item.second, period)}</p>}
                     </td>
                     <td className="px-4 py-3 align-top">
-                      <ScheduleBadge status={item.status} when={item.scheduledAt} period={period} />
-                      <div className="mt-1.5">
+                      <div className="flex justify-end">
                         <InterviewScheduleControls
                           responseId={item.responseId}
                           name={item.name}
@@ -154,7 +169,6 @@ export default async function InterviewsPage({
                           scheduledAt={item.scheduledAt}
                           first={item.first}
                           second={item.second}
-                          updatedBy={item.updatedBy}
                         />
                       </div>
                     </td>

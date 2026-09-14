@@ -13,7 +13,6 @@ interface Props {
   /** 응답자가 적어낸 희망 일시. 확정할 때 기본값으로 씁니다. */
   first: string;
   second: string;
-  updatedBy: string;
 }
 
 /** 'YYYY-MM-DD HH:MM' → ['YYYY-MM-DD', 'HH:MM'] */
@@ -22,6 +21,11 @@ function split(value: string | null): [string, string] {
   return [d, t];
 }
 
+/**
+ * 면담 일정 조작. 상태마다 버튼을 둘까지만 둡니다.
+ * 미확정 → 확정 / 취소, 확정 → 변경 / 취소, 취소됨 → 되돌리기.
+ * (취소한 뒤 되돌리면 다시 미확정이 되므로 모든 상태를 오갈 수 있습니다.)
+ */
 export default function InterviewScheduleControls({
   responseId,
   name,
@@ -29,7 +33,6 @@ export default function InterviewScheduleControls({
   scheduledAt,
   first,
   second,
-  updatedBy,
 }: Props) {
   const router = useRouter();
   // 확정된 일정이 있으면 그것을, 없으면 1순위 희망을 기본값으로 둡니다.
@@ -67,55 +70,30 @@ export default function InterviewScheduleControls({
   return (
     <div className="min-w-0">
       <div className="flex flex-wrap items-center gap-1.5">
-        <button
-          type="button"
-          className="rounded-md border border-line px-2 py-1 text-xs font-semibold text-ink transition hover:border-brand/40 hover:bg-brandTint disabled:opacity-50"
-          onClick={() => setOpen((v) => !v)}
-          disabled={busy}
-        >
-          {status === "confirmed" ? "일정 변경" : "일정 확정"}
-        </button>
-
-        {status !== "cancelled" ? (
-          <button
-            type="button"
-            className="rounded-md border border-line px-2 py-1 text-xs font-semibold text-muted transition hover:border-red-300 hover:bg-red-50 hover:text-red-700 disabled:opacity-50"
-            onClick={() => {
-              if (confirm(`${name} 님의 면담을 취소할까요?\n\n희망 일시 기록은 그대로 남습니다.`)) {
-                void send("cancel");
-              }
-            }}
-            disabled={busy}
-          >
-            면담 취소
+        {status === "cancelled" ? (
+          <button type="button" className={BTN} onClick={() => void send("reset")} disabled={busy}>
+            되돌리기
           </button>
         ) : (
-          <button
-            type="button"
-            className="rounded-md border border-line px-2 py-1 text-xs font-semibold text-muted transition hover:border-brand/40 hover:bg-brandTint disabled:opacity-50"
-            onClick={() => void send("reset")}
-            disabled={busy}
-          >
-            취소 되돌리기
-          </button>
-        )}
-
-        {status !== "requested" && (
-          <button
-            type="button"
-            className="rounded-md px-1.5 py-1 text-[11px] text-muted underline decoration-dotted transition hover:text-ink disabled:opacity-50"
-            onClick={() => void send("reset")}
-            disabled={busy}
-            title="확정·취소를 지우고 응답자가 적어낸 희망 상태로 되돌립니다."
-          >
-            희망 상태로
-          </button>
+          <>
+            <button type="button" className={BTN} onClick={() => setOpen((v) => !v)} disabled={busy}>
+              {status === "confirmed" ? "변경" : "확정"}
+            </button>
+            <button
+              type="button"
+              className={DANGER}
+              onClick={() => {
+                if (confirm(`${name} 님의 면담을 취소할까요?\n\n희망 일시 기록은 그대로 남습니다.`)) {
+                  void send("cancel");
+                }
+              }}
+              disabled={busy}
+            >
+              취소
+            </button>
+          </>
         )}
       </div>
-
-      {updatedBy && status !== "requested" && (
-        <p className="mt-1 text-[11px] text-muted">{updatedBy}가 지정</p>
-      )}
 
       {open && (
         <div className="mt-2 rounded-xl border border-line bg-gray-50 p-3">
@@ -161,12 +139,6 @@ export default function InterviewScheduleControls({
               닫기
             </button>
           </div>
-          {(first || second) && (
-            <p className="mt-2 text-[11px] leading-relaxed text-muted">
-              희망: {first || "—"}
-              {second ? ` / ${second}` : ""} (원하시는 다른 날로 잡으셔도 됩니다)
-            </p>
-          )}
         </div>
       )}
 
@@ -174,3 +146,8 @@ export default function InterviewScheduleControls({
     </div>
   );
 }
+
+const BTN =
+  "rounded-md border border-line bg-white px-2.5 py-1 text-xs font-semibold text-ink transition hover:border-brand/40 hover:bg-brandTint disabled:opacity-50";
+const DANGER =
+  "rounded-md border border-line bg-white px-2.5 py-1 text-xs font-semibold text-muted transition hover:border-red-300 hover:bg-red-50 hover:text-red-700 disabled:opacity-50";
