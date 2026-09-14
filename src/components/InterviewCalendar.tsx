@@ -37,7 +37,11 @@ export interface CalendarEntry {
   raw: string;
 }
 
-const COLS = [1, 2, 3, 4, 5, 6, 0]; // 월~일
+/** 달력 칸 순서. 일요일이 맨 앞, 토요일이 맨 뒤입니다. */
+const COLS = [0, 1, 2, 3, 4, 5, 6]; // 일~토
+
+/** 요일만 적어준 응답을 놓는 표는 평일만 씁니다. */
+const WEEKDAY_COLS = [1, 2, 3, 4, 5]; // 월~금
 
 /** 칩 하나를 가리키는 키. 같은 사람도 1순위·2순위는 서로 다른 칩입니다. */
 function chipKey(entry: CalendarEntry): string {
@@ -228,7 +232,7 @@ export default function InterviewCalendar({
                   <th className="w-20 px-2 pb-1 text-left text-[11px] font-semibold text-muted">
                     시간대
                   </th>
-                  {COLS.slice(0, 5).map((w) => (
+                  {WEEKDAY_COLS.map((w) => (
                     <th key={w} className="px-2 pb-1 text-center text-[11px] font-semibold text-muted">
                       {WEEKDAY_LABELS[w]}
                     </th>
@@ -244,7 +248,7 @@ export default function InterviewCalendar({
                       <th className="px-2 py-2 text-left text-xs font-semibold text-muted">
                         {TIME_BAND_LABEL[band]}
                       </th>
-                      {COLS.slice(0, 5).map((w) => {
+                      {WEEKDAY_COLS.map((w) => {
                         const cellItems = rowItems.filter((e) => e.weekday === w);
                         return (
                           <td

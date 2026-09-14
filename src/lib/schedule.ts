@@ -124,8 +124,8 @@ export interface CalendarDay {
 /** 월요일 시작의 6주 격자를 만듭니다. */
 export function buildMonthGrid(year: number, month: number, today = new Date()): CalendarDay[] {
   const first = new Date(Date.UTC(year, month - 1, 1));
-  // 월요일이 0이 되도록 회전
-  const offset = (first.getUTCDay() + 6) % 7;
+  // 일요일부터 시작하는 달력이라 getUTCDay()(일=0) 를 그대로 씁니다.
+  const offset = first.getUTCDay();
   const start = new Date(Date.UTC(year, month - 1, 1 - offset));
   const todayKey = `${today.getUTCFullYear()}-${pad(today.getUTCMonth() + 1)}-${pad(today.getUTCDate())}`;
 
