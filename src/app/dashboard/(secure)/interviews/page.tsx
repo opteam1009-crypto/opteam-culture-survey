@@ -58,14 +58,22 @@ export default async function InterviewsPage({
     if (item.status === "cancelled") return [];
     // 확정됐으면 희망 두 건 대신 확정된 한 건만 놓습니다.
     if (item.status === "confirmed" && item.scheduledAt) {
-      return [{ ...base, rank: 1 as const, confirmed: true, ...parseSlot(item.scheduledAt, period) }];
+      return [
+        {
+          ...base,
+          rank: 1 as const,
+          confirmed: true,
+          slot: item.scheduledAt,
+          ...parseSlot(item.scheduledAt, period),
+        },
+      ];
     }
     const slots: CalendarEntry[] = [];
     if (item.first) {
-      slots.push({ ...base, rank: 1, ...parseSlot(item.first, period) });
+      slots.push({ ...base, rank: 1, slot: item.first, ...parseSlot(item.first, period) });
     }
     if (item.second) {
-      slots.push({ ...base, rank: 2, ...parseSlot(item.second, period) });
+      slots.push({ ...base, rank: 2, slot: item.second, ...parseSlot(item.second, period) });
     }
     return slots;
   });

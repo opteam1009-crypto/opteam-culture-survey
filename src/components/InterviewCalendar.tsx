@@ -27,6 +27,8 @@ export interface CalendarEntry {
   scheduledAt: string | null;
   first: string;
   second: string;
+  /** 이 칩이 가리키는 'YYYY-MM-DD HH:MM'. 누른 칩의 날짜로 확정할 때 씁니다. */
+  slot: string;
   date: string | null;
   weekday: number | null;
   band: TimeBand;
@@ -37,6 +39,11 @@ export interface CalendarEntry {
 
 const COLS = [1, 2, 3, 4, 5, 6, 0]; // 월~일
 
+/** 칩 하나를 가리키는 키. 같은 사람도 1순위·2순위는 서로 다른 칩입니다. */
+function chipKey(entry: CalendarEntry): string {
+  return `${entry.responseId}:${entry.rank}:${entry.slot}`;
+}
+
 export default function InterviewCalendar({
   entries,
   period,
@@ -46,8 +53,9 @@ export default function InterviewCalendar({
 }) {
   const [refYear, refMonth] = period.split("-").map(Number);
   const [cursor, setCursor] = useState({ year: refYear, month: refMonth });
-  // 칩을 누르면 달력 아래에 그 사람의 일정 조작 칸을 엽니다.
+  // 칩을 누르면 달력 위에 그 칩의 일정 조작 칸을 엽니다.
   // 칸 안에 바로 펼치면 날짜 칸이 밀려 달력이 흐트러집니다.
+  // 같은 사람이라도 1순위·2순위는 다른 칩이므로 사람이 아니라 칩 단위로 고릅니다.
   const [picked, setPicked] = useState<string | null>(null);
 
   const grid = useMemo(
@@ -66,7 +74,7 @@ export default function InterviewCalendar({
     return map;
   }, [entries]);
 
-  const pickedEntry = picked ? entries.find((e) => e.responseId === picked) : undefined;
+  const pickedEntry = picked ? entries.find((e) => chipKey(e) === picked) : undefined;
   const weekdayOnly = entries.filter((e) => !e.date && e.weekday !== null);
   const unresolved = entries.filter((e) => !e.date && e.weekday === null);
   const datedCount = entries.filter((e) => e.date).length;
@@ -114,12 +122,16 @@ export default function InterviewCalendar({
               </div>
               <div className="flex items-center gap-2">
                 <InterviewScheduleControls
+                  // 다른 칩을 누르면 새로 만들어야 합니다. 같은 컴포넌트를 재사용하면
+                  // 앞서 고른 날짜가 그대로 남아 엉뚱한 날로 확정하게 됩니다.
+                  key={chipKey(pickedEntry)}
                   responseId={pickedEntry.responseId}
                   name={pickedEntry.name}
                   status={pickedEntry.status}
                   scheduledAt={pickedEntry.scheduledAt}
                   first={pickedEntry.first}
                   second={pickedEntry.second}
+                  presetAt={pickedEntry.slot}
                 />
                 <Link
                   href={`/dashboard/responses/${pickedEntry.responseId}`}
@@ -184,9 +196,9 @@ export default function InterviewCalendar({
                         <PersonChip
                           key={`${item.responseId}-${item.rank}-${j}`}
                           entry={item}
-                          active={picked === item.responseId}
+                          active={picked === chipKey(item)}
                           onPick={() =>
-                            setPicked((v) => (v === item.responseId ? null : item.responseId))
+                            setPicked((v) => (v === chipKey(item) ? null : chipKey(item)))
                           }
                         />
                       ))}
@@ -244,9 +256,9 @@ export default function InterviewCalendar({
                                 <PersonChip
                                   key={`${item.responseId}-${item.rank}-${j}`}
                                   entry={item}
-                                  active={picked === item.responseId}
+                                  active={picked === chipKey(item)}
                                   onPick={() =>
-                                    setPicked((v) => (v === item.responseId ? null : item.responseId))
+                                    setPicked((v) => (v === chipKey(item) ? null : chipKey(item)))
                                   }
                                 />
                               ))}

@@ -13,6 +13,8 @@ interface Props {
   /** 응답자가 적어낸 희망 일시. 확정할 때 기본값으로 씁니다. */
   first: string;
   second: string;
+  /** 캘린더에서 누른 칩의 일시. 주어지면 이 값을 기본값으로 씁니다. */
+  presetAt?: string;
 }
 
 /** 'YYYY-MM-DD HH:MM' → ['YYYY-MM-DD', 'HH:MM'] */
@@ -33,10 +35,12 @@ export default function InterviewScheduleControls({
   scheduledAt,
   first,
   second,
+  presetAt,
 }: Props) {
   const router = useRouter();
-  // 확정된 일정이 있으면 그것을, 없으면 1순위 희망을 기본값으로 둡니다.
-  const [initialDate, initialTime] = split(scheduledAt || first || second);
+  // 캘린더에서 누른 칩이 있으면 그 날짜를, 없으면 확정된 일정이나 1순위 희망을 씁니다.
+  // 9월 25일 칩을 눌렀는데 9월 15일이 채워져 있으면 엉뚱한 날로 확정하게 됩니다.
+  const [initialDate, initialTime] = split(presetAt || scheduledAt || first || second);
   const [open, setOpen] = useState(false);
   const [date, setDate] = useState(initialDate);
   const [time, setTime] = useState(initialTime);
