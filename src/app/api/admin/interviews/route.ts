@@ -29,15 +29,22 @@ export async function POST(request: Request) {
     action?: unknown;
     responseId?: unknown;
     scheduledAt?: unknown;
+    rank?: unknown;
   };
   const action = body.action;
   const id = typeof body.responseId === "string" ? body.responseId : "";
   if (!/^[0-9a-fA-F-]{36}$/.test(id)) {
     return NextResponse.json({ error: "대상을 찾을 수 없습니다." }, { status: 400 });
   }
-  if (action !== "confirm" && action !== "cancel" && action !== "reset") {
+  if (
+    action !== "confirm" &&
+    action !== "cancel" &&
+    action !== "reset" &&
+    action !== "remove_slot"
+  ) {
     return NextResponse.json({ error: "알 수 없는 요청입니다." }, { status: 400 });
   }
+  const rank = body.rank === 2 ? 2 : 1;
 
   const scheduledAt = typeof body.scheduledAt === "string" ? body.scheduledAt.trim() : "";
   if (action === "confirm" && !isValidInterviewSlot(scheduledAt)) {
@@ -61,6 +68,17 @@ export async function POST(request: Request) {
         { error: "이 계정으로는 바꿀 수 없는 면담입니다." },
         { status: 404 },
       );
+    }
+
+    // 응답자가 적어낸 희망 일시 두 개 중 고른 하나만 지웁니다.
+    // 일정 확정과는 별개로, 못 잡게 된 날짜를 달력에서 치우는 용도입니다.
+    if (action === "remove_slot") {
+      const code = rank === 2 ? "interview_second" : "interview_first";
+      await q`
+        delete from survey_answers
+         where response_id = ${id}::uuid and question_code = ${code}
+      `;
+      return NextResponse.json({ ok: true, removed: code });
     }
 
     if (action === "reset") {

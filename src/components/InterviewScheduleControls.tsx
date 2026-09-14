@@ -15,6 +15,11 @@ interface Props {
   second: string;
   /** 캘린더에서 누른 칩의 일시. 주어지면 이 값을 기본값으로 씁니다. */
   presetAt?: string;
+  /**
+   * 캘린더에서 「희망 일시」 칩을 눌렀을 때의 순위(1·2).
+   * 주어지면 「취소」 대신 그 일시 하나만 지우는 버튼을 보여줍니다.
+   */
+  slotRank?: 1 | 2;
 }
 
 /** 'YYYY-MM-DD HH:MM' → ['YYYY-MM-DD', 'HH:MM'] */
@@ -36,6 +41,7 @@ export default function InterviewScheduleControls({
   first,
   second,
   presetAt,
+  slotRank,
 }: Props) {
   const router = useRouter();
   // 캘린더에서 누른 칩이 있으면 그 날짜를, 없으면 확정된 일정이나 1순위 희망을 씁니다.
@@ -47,14 +53,17 @@ export default function InterviewScheduleControls({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function send(action: "confirm" | "cancel" | "reset", when?: string) {
+  async function send(
+    action: "confirm" | "cancel" | "reset" | "remove_slot",
+    when?: string,
+  ) {
     setBusy(true);
     setError(null);
     try {
       const res = await fetch("/api/admin/interviews", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, responseId, scheduledAt: when }),
+        body: JSON.stringify({ action, responseId, scheduledAt: when, rank: slotRank }),
       });
       const data = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) {
@@ -83,18 +92,37 @@ export default function InterviewScheduleControls({
             <button type="button" className={BTN} onClick={() => setOpen((v) => !v)} disabled={busy}>
               {status === "confirmed" ? "변경" : "확정"}
             </button>
-            <button
-              type="button"
-              className={DANGER}
-              onClick={() => {
-                if (confirm(`${name} 님의 면담을 취소할까요?\n\n희망 일시 기록은 그대로 남습니다.`)) {
-                  void send("cancel");
-                }
-              }}
-              disabled={busy}
-            >
-              취소
-            </button>
+            {slotRank ? (
+              <button
+                type="button"
+                className={DANGER}
+                onClick={() => {
+                  if (
+                    confirm(
+                      `${name} 님의 ${slotRank}순위 희망 일시를 지울까요?\n\n다른 희망 일시와 면담 일정은 그대로 남습니다.`,
+                    )
+                  ) {
+                    void send("remove_slot");
+                  }
+                }}
+                disabled={busy}
+              >
+                이 일시 삭제
+              </button>
+            ) : (
+              <button
+                type="button"
+                className={DANGER}
+                onClick={() => {
+                  if (confirm(`${name} 님의 면담을 취소할까요?\n\n희망 일시 기록은 그대로 남습니다.`)) {
+                    void send("cancel");
+                  }
+                }}
+                disabled={busy}
+              >
+                면담 취소
+              </button>
+            )}
           </>
         )}
       </div>

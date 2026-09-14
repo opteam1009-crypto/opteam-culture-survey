@@ -132,6 +132,8 @@ export default function InterviewCalendar({
                   first={pickedEntry.first}
                   second={pickedEntry.second}
                   presetAt={pickedEntry.slot}
+                  // 확정된 칩이 아니라 희망 칩이면 그 일시만 지울 수 있게 합니다.
+                  slotRank={pickedEntry.confirmed ? undefined : pickedEntry.rank}
                 />
                 <Link
                   href={`/dashboard/responses/${pickedEntry.responseId}`}
