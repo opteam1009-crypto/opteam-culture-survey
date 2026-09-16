@@ -39,6 +39,16 @@
  *   「업무 컨디션 점수」처럼 영역별 점수, 면담상태, 면담일정, 면담희망1, 면담희망2, 면담주제
  */
 
+/**
+ * 이 스크립트의 판 번호. 서버가 이 값을 보고 예전 버전이면 쓰기를 멈춥니다.
+ *
+ * 「배포 → 새 배포」로 만들면 주소가 새로 생깁니다. 그래서 브라우저로는 새 주소를
+ * 확인하고 Vercel 에는 옛 주소가 남아, 예전 코드가 계속 도는 일이 생깁니다.
+ * 예전 코드는 칸을 통째로 덮어써서 면담 메모를 지웁니다. 그걸 막는 장치입니다.
+ * (코드를 고쳤으면 「배포 관리 → 편집 → 새 버전」으로 같은 주소를 갱신하세요.)
+ */
+var SCRIPT_VERSION = 3;
+
 /** Vercel 의 SHEETS_WEBHOOK_SECRET 과 똑같이 맞춰주세요. */
 var SECRET = '여기에_아무도_모르는_문자열';
 
@@ -117,12 +127,17 @@ function doPost(e) {
       });
     }
     var rows = body.rows || [];
-    if (!rows.length) return json({ ok: true, updated: 0, appended: 0 });
+    // 서버가 판 번호만 확인하러 부를 때가 있습니다. 이때는 아무것도 쓰지 않습니다.
+    if (body.checkOnly || !rows.length) {
+      return json({ ok: true, version: SCRIPT_VERSION, updated: 0, appended: 0 });
+    }
 
     var layout = readLayout();
     if (layout.error) return json({ ok: false, error: layout.error });
 
-    return json(layout.wide ? writeWide(layout, rows) : writeLong(layout, rows));
+    var result = layout.wide ? writeWide(layout, rows) : writeLong(layout, rows);
+    result.version = SCRIPT_VERSION;
+    return json(result);
   } catch (err) {
     return json({ ok: false, error: '시트 처리 중 오류: ' + err });
   }
@@ -153,6 +168,7 @@ function doGet(e) {
   }
   return json({
     ok: true,
+    version: SCRIPT_VERSION,
     시트: layout.sheet.getName(),
     모양: layout.wide ? '가로형 (사람=행, 회차=열)' : '세로형 (한 줄 = 한 사람의 한 회차)',
     이름칸: columnLetter(layout.colOf['이름'] + 1),

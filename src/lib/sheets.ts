@@ -168,6 +168,101 @@ export function buildSheetRows(
   });
 }
 
+/**
+ * 시트에 붙어 있어야 하는 스크립트 판 번호(scripts/google-sheet-apps-script.gs 의
+ * SCRIPT_VERSION). 이보다 낮으면 쓰지 않고 멈춥니다.
+ *
+ * 예전 판은 회차 칸을 통째로 덮어써서, 점수 밑에 적어둔 면담 메모(「예정」·
+ * 「면담불필요」)를 지웁니다. Apps Script 는 「새 배포」를 하면 주소가 새로
+ * 생기기 때문에, 브라우저로는 새 주소를 확인하고 Vercel 에는 옛 주소가 남아
+ * 예전 코드가 계속 도는 일이 실제로 있었습니다. 한 번 지워진 메모는 우리가
+ * 되돌릴 수 없으니, 판 번호를 먼저 확인하고 쓰기 시작합니다.
+ */
+const REQUIRED_SCRIPT_VERSION = 3;
+
+/** 확인 결과를 잠시 기억해 매번 왕복하지 않게 합니다. */
+let versionCheck: { at: number; ok: boolean; message: string } | null = null;
+const VERSION_CHECK_TTL = 10 * 60 * 1000;
+
+async function callScript(
+  url: string,
+  body: Record<string, unknown>,
+  timeoutMs: number,
+): Promise<{ ok: boolean; text: string; status: number; message: string }> {
+  const abort = new AbortController();
+  const timer = setTimeout(() => abort.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, {
+      // Apps Script 는 preflight 가 필요한 Content-Type 을 싫어합니다.
+      // text/plain 으로 보내고 스크립트에서 JSON.parse 합니다.
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(body),
+      signal: abort.signal,
+      // 웹 앱은 script.googleusercontent.com 으로 한 번 넘깁니다.
+      redirect: "follow",
+      cache: "no-store",
+    });
+    return { ok: res.ok, text: await res.text(), status: res.status, message: "" };
+  } catch (err) {
+    const aborted = err instanceof Error && err.name === "AbortError";
+    console.error("[sheets] call failed", err);
+    return {
+      ok: false,
+      text: "",
+      status: 0,
+      message: aborted
+        ? `시트가 ${Math.round(timeoutMs / 1000)}초 안에 응답하지 않았습니다. 잠시 뒤 다시 시도해 주세요.`
+        : "시트에 연결하지 못했습니다. SHEETS_WEBHOOK_URL 을 확인해 주세요.",
+    };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** 붙어 있는 스크립트가 최신 판인지. 아니면 쓰지 않습니다. */
+async function checkVersion(
+  url: string,
+  secret: string,
+  timeoutMs: number,
+): Promise<{ ok: boolean; message: string }> {
+  if (versionCheck && Date.now() - versionCheck.at < VERSION_CHECK_TTL) {
+    return { ok: versionCheck.ok, message: versionCheck.message };
+  }
+
+  const res = await callScript(url, { secret, checkOnly: true, rows: [] }, timeoutMs);
+  if (!res.ok && res.message) return { ok: false, message: res.message };
+
+  let version = 0;
+  let error = "";
+  try {
+    const parsed = JSON.parse(res.text) as { version?: number; error?: string };
+    version = Number(parsed.version ?? 0);
+    error = parsed.error ?? "";
+  } catch {
+    return {
+      ok: false,
+      message:
+        "시트에서 예상 밖의 응답이 왔습니다. 웹 앱 배포의 액세스 권한을 「모든 사용자」로 두었는지 확인해 주세요.",
+    };
+  }
+  if (error) return { ok: false, message: error };
+
+  const outcome =
+    version >= REQUIRED_SCRIPT_VERSION
+      ? { ok: true, message: "" }
+      : {
+          ok: false,
+          message:
+            `시트에 붙은 스크립트가 예전 판(${version || "번호 없음"})이라 쓰지 않았습니다. ` +
+            "예전 판은 점수 칸을 통째로 덮어써서 「예정」·「면담불필요」 같은 메모를 지웁니다. " +
+            "Apps Script 에서 최신 코드를 붙여넣고 「배포 → 배포 관리 → 편집 → 버전: 새 버전」으로 " +
+            "같은 주소를 갱신해 주세요. (「새 배포」는 주소가 새로 생겨 이 주소는 그대로입니다.)",
+        };
+  versionCheck = { at: Date.now(), ...outcome };
+  return outcome;
+}
+
 /** 스크립트에 보내고 결과를 받습니다. 실패해도 예외를 던지지 않습니다. */
 export async function pushToSheet(
   rows: SheetRow[],
@@ -187,64 +282,46 @@ export async function pushToSheet(
     return { status: "skipped", updated: 0, appended: 0, message: "보낼 응답이 없습니다." };
   }
 
-  // Apps Script 가 느릴 때 요청이 영영 매달려 있지 않도록 끊습니다.
-  const abort = new AbortController();
-  const timer = setTimeout(() => abort.abort(), timeoutMs);
+  const secret = realValue(process.env.SHEETS_WEBHOOK_SECRET);
+
+  // 쓰기 전에 어떤 판이 붙어 있는지 먼저 봅니다. 지워진 메모는 되돌릴 수 없습니다.
+  const version = await checkVersion(url, secret, timeoutMs);
+  if (!version.ok) {
+    return { status: "failed", updated: 0, appended: 0, message: version.message };
+  }
+
+  const res = await callScript(url, { secret, rows }, timeoutMs);
+  if (!res.ok && res.message) {
+    return { status: "failed", updated: 0, appended: 0, message: res.message };
+  }
+
+  let parsed: { ok?: boolean; updated?: number; appended?: number; error?: string } = {};
   try {
-    const res = await fetch(url, {
-      method: "POST",
-      // Apps Script 는 preflight 가 필요한 Content-Type 을 싫어합니다.
-      // text/plain 으로 보내고 스크립트에서 JSON.parse 합니다.
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify({ secret: realValue(process.env.SHEETS_WEBHOOK_SECRET), rows }),
-      signal: abort.signal,
-      // 웹 앱은 script.googleusercontent.com 으로 한 번 넘깁니다.
-      redirect: "follow",
-      cache: "no-store",
-    });
-
-    const text = await res.text();
-    let parsed: { ok?: boolean; updated?: number; appended?: number; error?: string } = {};
-    try {
-      parsed = JSON.parse(text) as typeof parsed;
-    } catch {
-      // 스크립트가 아니라 구글 로그인 페이지가 돌아온 경우가 대부분입니다.
-      return {
-        status: "failed",
-        updated: 0,
-        appended: 0,
-        message:
-          "시트에서 예상 밖의 응답이 왔습니다. 웹 앱 배포의 액세스 권한을 「모든 사용자」로 두었는지 확인해 주세요.",
-      };
-    }
-
-    if (!res.ok || parsed.ok !== true) {
-      return {
-        status: "failed",
-        updated: 0,
-        appended: 0,
-        message: parsed.error ?? `시트가 오류를 돌려주었습니다. (HTTP ${res.status})`,
-      };
-    }
-
-    return {
-      status: "sent",
-      updated: Number(parsed.updated ?? 0),
-      appended: Number(parsed.appended ?? 0),
-      message: "",
-    };
-  } catch (err) {
-    const aborted = err instanceof Error && err.name === "AbortError";
-    console.error("[sheets] push failed", err);
+    parsed = JSON.parse(res.text) as typeof parsed;
+  } catch {
+    // 스크립트가 아니라 구글 로그인 페이지가 돌아온 경우가 대부분입니다.
     return {
       status: "failed",
       updated: 0,
       appended: 0,
-      message: aborted
-        ? `시트가 ${Math.round(timeoutMs / 1000)}초 안에 응답하지 않았습니다. 잠시 뒤 다시 시도해 주세요.`
-        : "시트에 연결하지 못했습니다. SHEETS_WEBHOOK_URL 을 확인해 주세요.",
+      message:
+        "시트에서 예상 밖의 응답이 왔습니다. 웹 앱 배포의 액세스 권한을 「모든 사용자」로 두었는지 확인해 주세요.",
     };
-  } finally {
-    clearTimeout(timer);
   }
+
+  if (!res.ok || parsed.ok !== true) {
+    return {
+      status: "failed",
+      updated: Number(parsed.updated ?? 0),
+      appended: Number(parsed.appended ?? 0),
+      message: parsed.error ?? `시트가 오류를 돌려주었습니다. (HTTP ${res.status})`,
+    };
+  }
+
+  return {
+    status: "sent",
+    updated: Number(parsed.updated ?? 0),
+    appended: Number(parsed.appended ?? 0),
+    message: "",
+  };
 }
