@@ -16,12 +16,12 @@
  *
  *   가로형 — 사람이 행, 회차가 열. 흔한 명부 형태입니다.
  *       이름   | … | 26.09 정기설문 | 26.09 정기면담
- *       김철수 | … |      72       |  9/24 14:00
- *                        ↑ 점수        ↑ 면담 일정
+ *       김철수 | … |               |    43.3점      ← 첫 줄만 바꿉니다
+ *                                       예정         ← 아래 줄은 그대로
  *     회차로 읽히는 헤더(26.09 / 2026-09 / 2026년 9월 …)를 찾아 그 열에 씁니다.
- *     한 회차에 열이 여럿이면 제목으로 갈라봅니다. 「면담」이 들어간 칸은 면담
- *     일정 자리로, 그 밖(「설문」 포함)은 점수 자리로 봅니다. 설문 점수가 면담
- *     칸에 들어가면 안 되니까요.
+ *     한 회차에 열이 여럿이면 SCORE_COLUMN_WORD 가 든 칸을 고릅니다.
+ *     칸이 「43.3점 / 예정」처럼 여러 줄이면 점수 줄만 갈아끼우고 나머지 줄
+ *     (면담 진행 메모 등)은 손대지 않습니다.
  *
  *   세로형 — 한 줄이 한 사람의 한 회차.
  *       회차 | 이름 | 부서 | 종합점수 | 면담일정 …
@@ -48,17 +48,28 @@ var SHEET_NAME = '';
 /** 항목 이름이 적힌 행 번호. 위에 제목 줄이 있으면 2, 3 … 으로 바꿔주세요. */
 var HEADER_ROW = 1;
 
-/** 가로형의 「설문」 칸에 넣을 값. 영역별 점수를 넣고 싶으면 '리더십 및 소통 점수' 처럼. */
+/** 가로형에서 회차 칸에 넣을 값. 영역별 점수를 넣고 싶으면 '리더십 및 소통 점수' 처럼. */
 var WIDE_VALUE_FIELD = '종합점수';
 
-/** 가로형의 「면담」 칸에 넣을 값. */
-var WIDE_INTERVIEW_FIELD = '면담일정';
+/**
+ * 한 회차에 열이 여럿일 때(예: 「26.09 정기설문」과 「26.09 정기면담」)
+ * 점수를 넣을 칸을 고르는 말. 제목에 이 말이 든 칸에 씁니다.
+ * 비워두면 그 회차의 맨 왼쪽 칸에 씁니다.
+ */
+var SCORE_COLUMN_WORD = '면담';
 
-/** 열 제목이 이 말을 포함하면 면담 칸으로 봅니다. */
-var INTERVIEW_WORDS = ['면담', '미팅', '1:1'];
+/** 점수 뒤에 붙일 말. 시트가 「43.3점」처럼 적고 있으면 '점', 숫자만 쓰려면 ''. */
+var SCORE_SUFFIX = '점';
 
-/** 명부에 없는 사람이 설문을 냈을 때 행을 새로 달지. 끄면 건너뛰고 알려만 줍니다. */
-var ADD_MISSING_PEOPLE = true;
+/**
+ * 명부에 없는 이름이 들어왔을 때 행을 새로 달지.
+ *
+ * 기본은 끔입니다. 이 시트는 생년월일·연락처·직급까지 들어 있는 인사 명부라,
+ * 이름만 적힌 반쪽짜리 행이 섞이면 명부가 지저분해집니다. 그리고 대개는 신입이
+ * 아니라 설문에 적은 이름이 명부와 조금 다른 경우(띄어쓰기·동명이인)입니다.
+ * 그런 이름은 그냥 알려주고, 사람이 판단해서 명부에 넣게 둡니다.
+ */
+var ADD_MISSING_PEOPLE = false;
 
 /**
  * 시트에 적힌 헤더 이름 → 우리가 보내는 항목명.
@@ -130,7 +141,7 @@ function doGet(e) {
     var period = layout.periodOfCol[c];
     var seen = '(안 채움)';
     if (period) {
-      seen = period + (layout.kindOfCol[c] === 'interview' ? ' 면담 일정' : ' 설문 점수');
+      seen = period + (layout.kindOfCol[c] === 'picked' ? ' 점수 ← 여기' : ' 회차 (같은 회차 칸)');
     } else if (layout.fieldOfCol[c] && isKnownField(layout.fieldOfCol[c])) {
       seen = layout.fieldOfCol[c];
     }
@@ -175,6 +186,7 @@ function readLayout() {
     // 회차로 읽히는 헤더(26.09 정기설문 등)는 그 회차의 칸으로 봅니다.
     periodOfCol[c] = colOf['회차'] === c ? '' : periodFromHeader(headers[c]);
     kindOfCol[c] = periodOfCol[c] ? columnKind(headers[c]) : '';
+    // (kindOfCol: 'picked' = 점수를 넣을 칸, 'other' = 같은 회차지만 안 쓰는 칸)
   }
 
   if (colOf['이름'] === undefined) {
@@ -228,17 +240,17 @@ function writeWide(layout, rows) {
     if (who && rowOfName[who] === undefined) rowOfName[who] = r;
   }
 
-  // 같은 회차에 열이 여럿이면 제목으로 갈라 담습니다.
-  // 같은 종류가 또 있으면 왼쪽 칸을 씁니다(먼저 만든 칸이 원본일 테니).
+  // 한 회차에 열이 여럿이면 SCORE_COLUMN_WORD 가 든 칸을 고릅니다.
+  // 없으면 그 회차의 맨 왼쪽 칸. 같은 조건이 또 있어도 왼쪽이 이깁니다.
   var scoreCol = {};
-  var interviewCol = {};
+  var picked = {};
   for (var c = 0; c < layout.periodOfCol.length; c++) {
     var p = layout.periodOfCol[c];
     if (!p) continue;
-    if (layout.kindOfCol[c] === 'interview') {
-      if (interviewCol[p] === undefined) interviewCol[p] = c;
-    } else if (scoreCol[p] === undefined) {
+    var isPicked = layout.kindOfCol[c] === 'picked';
+    if (scoreCol[p] === undefined || (isPicked && !picked[p])) {
       scoreCol[p] = c;
+      picked[p] = isPicked;
     }
   }
 
@@ -254,16 +266,13 @@ function writeWide(layout, rows) {
 
     var period = normalizePeriod(incoming['회차코드'] || incoming['회차']);
     var score = incoming[WIDE_VALUE_FIELD];
-    var schedule = incoming[WIDE_INTERVIEW_FIELD];
-    var hasScore = score !== '' && score !== null && score !== undefined;
-    var hasSchedule = schedule !== '' && schedule !== null && schedule !== undefined;
+    if (score === '' || score === null || score === undefined) continue;
 
     // 넣을 값이 있는데 넣을 칸이 없으면 아무 데나 쓰지 않고 알려줍니다.
-    if (hasScore && scoreCol[period] === undefined) {
+    if (scoreCol[period] === undefined) {
       missingPeriods[period] = true;
       continue;
     }
-    if (!hasScore && !hasSchedule) continue;
 
     var at = rowOfName[name];
     if (at === undefined) {
@@ -286,24 +295,34 @@ function writeWide(layout, rows) {
       updated++;
     }
 
-    if (hasScore) body[at][scoreCol[period]] = coerce(score);
-    if (hasSchedule && interviewCol[period] !== undefined) {
-      body[at][interviewCol[period]] = schedule;
-    }
+    var cell = scoreCol[period];
+    body[at][cell] = mergeScore(body[at][cell], score);
   }
 
   writeBody(layout, body);
 
+  // 쓴 것은 쓰고, 못 쓴 것이 있으면 조용히 넘기지 않고 알립니다.
   var result = { ok: true, updated: updated, appended: added };
+  var trouble = [];
   var periods = Object.keys(missingPeriods);
   if (periods.length) {
-    result.error =
-      periods.join(', ') + ' 회차의 설문 칸이 시트에 없습니다. 「' +
-      shortLabel(periods[0]) + ' 정기설문」 같은 제목으로 열을 하나 만들어 주세요.';
-    result.ok = false;
+    trouble.push(
+      periods.join(', ') + ' 회차 칸이 시트에 없습니다. 「' +
+      shortLabel(periods[0]) + ' 정기면담」 같은 제목으로 열을 하나 만들어 주세요.'
+    );
   }
   var people = Object.keys(missingPeople);
-  if (people.length) result.명부에없는사람 = people;
+  if (people.length) {
+    trouble.push(
+      '명부에 없는 이름이라 넣지 못했습니다: ' + people.join(', ') +
+      '. 시트의 이름과 설문에 적은 이름이 같은지 확인해 주세요.'
+    );
+    result.명부에없는사람 = people;
+  }
+  if (trouble.length) {
+    result.ok = false;
+    result.error = trouble.join(' / ');
+  }
   return result;
 }
 
@@ -387,13 +406,10 @@ function isKnownField(field) {
   return /점수$/.test(field);
 }
 
-/** 회차 열이 「면담」 칸인지 「설문(점수)」 칸인지. 제목에 단서가 없으면 점수로 봅니다. */
+/** 이 회차 열이 SCORE_COLUMN_WORD 를 달고 있는지. 고를 때 우선합니다. */
 function columnKind(header) {
-  var text = String(header == null ? '' : header);
-  for (var i = 0; i < INTERVIEW_WORDS.length; i++) {
-    if (text.indexOf(INTERVIEW_WORDS[i]) >= 0) return 'interview';
-  }
-  return 'score';
+  if (!SCORE_COLUMN_WORD) return 'other';
+  return String(header == null ? '' : header).indexOf(SCORE_COLUMN_WORD) >= 0 ? 'picked' : 'other';
 }
 
 function hasAnyPeriodColumn(periodOfCol) {
@@ -448,6 +464,33 @@ function expandYear(raw) {
 
 function pad2(n) {
   return n < 10 ? '0' + n : String(n);
+}
+
+/**
+ * 회차 칸의 점수 줄만 갈아끼웁니다.
+ *
+ * 시트 칸이 한 줄이 아닙니다. 「43.3점」 아래에 「예정」·「면담불필요」 같은
+ * 면담 메모가 같이 들어 있어서, 칸을 통째로 덮으면 그 메모가 사라집니다.
+ *
+ *   ''            → '43.3점'
+ *   '50점\n예정'  → '43.3점\n예정'      (점수 줄만 교체)
+ *   '예정'        → '43.3점\n예정'      (점수 줄이 없으면 위에 끼워 넣기)
+ *
+ * 첫 줄이 점수처럼 생겼을 때만 교체합니다. 사람이 적어둔 말을 점수로 착각해
+ * 지우면 안 되니까요.
+ */
+function mergeScore(existing, score) {
+  var head = String(score).trim() + SCORE_SUFFIX;
+  var text = existing === null || existing === undefined ? '' : String(existing);
+  if (!text.trim()) return head;
+
+  var lines = text.split('\n');
+  if (/^\s*-?\d+(\.\d+)?\s*[^\d\s]{0,3}\s*$/.test(lines[0])) {
+    lines[0] = head;           // 이미 점수가 있던 칸
+  } else {
+    lines.unshift(head);       // 메모만 있던 칸
+  }
+  return lines.join('\n');
 }
 
 /** 숫자로만 된 문자열은 숫자로 넣습니다. 시트에서 평균·정렬이 되도록. */
