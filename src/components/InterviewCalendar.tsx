@@ -38,6 +38,20 @@ export interface CalendarEntry {
   raw: string;
 }
 
+/**
+ * 칩 색이 뜻하는 것. 「조직 리스크 체크」 응답의 심각도입니다.
+ * 범례와 칩이 같은 값을 쓰도록 여기 한 곳에만 둡니다.
+ */
+const RISK_TONES = [
+  { label: "정상", bg: "#eef3fb", ink: "#1f4d8f" },
+  { label: "주의", bg: "#fdeee7", ink: "#93441f" },
+  { label: "확인 필요", bg: "#fbeaea", ink: "#9c2b2b" },
+];
+
+function toneOf(riskLevel: number) {
+  return RISK_TONES[Math.min(Math.max(riskLevel, 0), RISK_TONES.length - 1)];
+}
+
 /** 달력 칸 순서. 일요일이 맨 앞, 토요일이 맨 뒤입니다. */
 const COLS = [0, 1, 2, 3, 4, 5, 6]; // 일~토
 
@@ -107,6 +121,28 @@ export default function InterviewCalendar({
           <p className="text-xs text-muted">
             날짜가 특정된 희망 {datedCount}건을 표시합니다
           </p>
+          {/*
+            색이 무엇을 뜻하는지 적어두지 않으면 읽는 사람은 알 수가 없습니다.
+            「조직 리스크 체크」 응답의 심각도입니다.
+          */}
+          <div className="mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-[11px] text-muted">
+            <span className="font-semibold text-ink">색</span>
+            {RISK_TONES.map((t) => (
+              <span key={t.label} className="inline-flex items-center gap-1">
+                <span
+                  className="inline-block h-3 w-3 rounded-sm"
+                  style={{ background: t.bg, border: `1px solid ${t.ink}33` }}
+                />
+                {t.label}
+              </span>
+            ))}
+            <span>= 조직 리스크 체크 응답</span>
+            <span className="text-line">|</span>
+            <span>
+              <b className="font-semibold text-ink">확정</b> 잡힌 일정 ·{" "}
+              <b className="font-semibold text-ink">1·2순위</b> 응답자가 적어낸 희망
+            </span>
+          </div>
         </header>
 
         {pickedEntry && (
@@ -123,6 +159,8 @@ export default function InterviewCalendar({
                   {pickedEntry.confirmed ? "확정" : `${pickedEntry.rank}순위 희망`}
                   {pickedEntry.time ? ` · ${pickedEntry.time}` : ""}
                   {pickedEntry.topic ? ` · ${pickedEntry.topic}` : ""}
+                  {` · 리스크 ${toneOf(pickedEntry.riskLevel).label}`}
+                  {pickedEntry.hrOnly ? " · 인사책임자와 면담 희망" : ""}
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -320,12 +358,7 @@ function PersonChip({
   active: boolean;
   onPick: () => void;
 }) {
-  const tone =
-    entry.riskLevel >= 2
-      ? { bg: "#fbeaea", ink: "#9c2b2b" }
-      : entry.riskLevel === 1
-        ? { bg: "#fdeee7", ink: "#93441f" }
-        : { bg: "#eef3fb", ink: "#1f4d8f" };
+  const tone = toneOf(entry.riskLevel);
 
   // 시간까지 고른 응답은 "오전 10:30", 예전 자유 입력은 "오전" 처럼 시간대만 나옵니다.
   const when = entry.time ?? (entry.band === "unknown" ? null : TIME_BAND_LABEL[entry.band]);
@@ -342,10 +375,7 @@ function PersonChip({
       }`}
       style={{ background: tone.bg, color: tone.ink }}
     >
-      <span className="block truncate">
-        {entry.hrOnly && <span aria-hidden>🤝</span>}
-        {entry.name}
-      </span>
+      <span className="block truncate">{entry.name}</span>
       <span className="mt-0.5 block truncate text-[11px] font-normal opacity-75">
         {entry.confirmed ? "확정" : `${entry.rank}순위`}{when ? ` · ${when}` : ""}
       </span>
