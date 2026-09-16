@@ -74,6 +74,47 @@ function slotValue(raw: string): string {
 const RISK_LABEL = ["정상", "주의", "확인 필요"];
 
 /**
+ * 시트에 무엇까지 보낼지.
+ *
+ * - scores : 회차·이름·부서와 점수만. 날짜도 면담도 보내지 않습니다.
+ * - full   : 제출일시·위험도·열람범위·면담 일정까지.
+ *
+ * 나누어 둔 이유는, 안 보내는 항목은 시트에 그 칸이 있더라도 건드리지 않기
+ * 때문입니다. 시트에 이미 손으로 관리하던 날짜 칸이 있어도 안전합니다.
+ */
+export type SheetMode = "scores" | "full";
+
+/**
+ * 한 사람의 점수 한 줄. 제출 직후 그 사람만 보낼 때도 씁니다.
+ *
+ * 가로형 시트(사람=행, 회차=열)에서는 회차코드로 열을, 이름으로 행을 찾으므로
+ * 이 세 가지(회차코드·이름·종합점수)가 핵심입니다. 나머지는 시트에 그 칸이
+ * 있을 때만 쓰입니다.
+ */
+export function buildScoreRow(input: {
+  period: string;
+  name: string;
+  department: string;
+  overallScore: number | null;
+  sectionScores: Record<string, number> | null | undefined;
+}): SheetRow {
+  const sheet: SheetRow = {
+    // 회차코드는 사람이 읽는 값이 아니라 회차를 다시 찾을 때 쓰는 열쇠입니다.
+    회차코드: input.period,
+    회차: formatPeriod(input.period),
+    이름: input.name,
+    부서: input.department,
+    종합점수: input.overallScore === null ? "" : String(input.overallScore),
+  };
+  for (const section of SECTIONS) {
+    const score = input.sectionScores?.[section.code];
+    if (score === undefined || score === null) continue;
+    sheet[`${section.label} 점수`] = String(score);
+  }
+  return sheet;
+}
+
+/**
  * 응답 목록과 면담 일정을 시트 한 행씩으로 만듭니다.
  *
  * 면담을 신청하지 않은 사람도 설문 제출일은 있으므로 응답을 기준으로 돌고,
@@ -82,29 +123,26 @@ const RISK_LABEL = ["정상", "주의", "확인 필요"];
 export function buildSheetRows(
   responses: ResponseRow[],
   interviews: InterviewRequest[],
+  mode: SheetMode = "scores",
 ): SheetRow[] {
   const byResponse = new Map(interviews.map((i) => [i.responseId, i]));
 
   return responses.map((row) => {
     const interview = byResponse.get(row.id);
-    const sheet: SheetRow = {
-      // 회차코드는 사람이 읽는 값이 아니라 같은 사람을 다시 찾을 때 쓰는 열쇠입니다.
-      회차코드: row.period,
-      회차: formatPeriod(row.period),
-      이름: row.respondent_name,
-      부서: row.department_name,
-      열람범위: VISIBILITY_LABEL[row.visibility] ?? row.visibility,
-      제출일시: seoulStamp(row.submitted_at),
-      제출일자: seoulStamp(row.submitted_at).slice(0, 10),
-      종합점수: row.overall_score === null ? "" : String(row.overall_score),
-      위험도: RISK_LABEL[Number(row.risk_level ?? 0)] ?? "",
-    };
+    const sheet = buildScoreRow({
+      period: row.period,
+      name: row.respondent_name,
+      department: row.department_name,
+      overallScore: row.overall_score,
+      sectionScores: row.section_scores,
+    });
 
-    for (const section of SECTIONS) {
-      const score = row.section_scores?.[section.code];
-      if (score === undefined || score === null) continue;
-      sheet[`${section.label} 점수`] = String(score);
-    }
+    if (mode === "scores") return sheet;
+
+    sheet.열람범위 = VISIBILITY_LABEL[row.visibility] ?? row.visibility;
+    sheet.제출일시 = seoulStamp(row.submitted_at);
+    sheet.제출일자 = seoulStamp(row.submitted_at).slice(0, 10);
+    sheet.위험도 = RISK_LABEL[Number(row.risk_level ?? 0)] ?? "";
 
     if (interview) {
       sheet.면담상태 =
@@ -131,7 +169,10 @@ export function buildSheetRows(
 }
 
 /** 스크립트에 보내고 결과를 받습니다. 실패해도 예외를 던지지 않습니다. */
-export async function pushToSheet(rows: SheetRow[]): Promise<SheetPushResult> {
+export async function pushToSheet(
+  rows: SheetRow[],
+  timeoutMs = 20_000,
+): Promise<SheetPushResult> {
   const url = realValue(process.env.SHEETS_WEBHOOK_URL);
   if (!url.startsWith("https://")) {
     return {
@@ -148,7 +189,7 @@ export async function pushToSheet(rows: SheetRow[]): Promise<SheetPushResult> {
 
   // Apps Script 가 느릴 때 요청이 영영 매달려 있지 않도록 끊습니다.
   const abort = new AbortController();
-  const timer = setTimeout(() => abort.abort(), 20_000);
+  const timer = setTimeout(() => abort.abort(), timeoutMs);
   try {
     const res = await fetch(url, {
       method: "POST",
@@ -200,7 +241,7 @@ export async function pushToSheet(rows: SheetRow[]): Promise<SheetPushResult> {
       updated: 0,
       appended: 0,
       message: aborted
-        ? "시트가 20초 안에 응답하지 않았습니다. 잠시 뒤 다시 시도해 주세요."
+        ? `시트가 ${Math.round(timeoutMs / 1000)}초 안에 응답하지 않았습니다. 잠시 뒤 다시 시도해 주세요.`
         : "시트에 연결하지 못했습니다. SHEETS_WEBHOOK_URL 을 확인해 주세요.",
     };
   } finally {

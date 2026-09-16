@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
 import { readSession } from "@/lib/auth";
 import { loadInterviewRequests, loadVisibleResponses } from "@/lib/queries";
-import { buildSheetRows, pushToSheet, sheetsConfigured } from "@/lib/sheets";
+import { buildSheetRows, pushToSheet, sheetsConfigured, type SheetMode } from "@/lib/sheets";
+
+/**
+ * 지금은 점수만 올립니다. 제출일시·면담 일정까지 올리려면 "full" 로 바꾸면 됩니다.
+ * (시트에 그 칸이 없으면 어차피 무시되고, 있으면 그때부터 채워집니다.)
+ */
+const MODE: SheetMode = "scores";
 
 export const dynamic = "force-dynamic";
 
@@ -49,8 +55,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "조건에 맞는 응답이 없습니다." }, { status: 400 });
     }
 
-    const interviews = await loadInterviewRequests(session.role, period || undefined);
-    const result = await pushToSheet(buildSheetRows(responses, interviews));
+    const interviews =
+      MODE === "full" ? await loadInterviewRequests(session.role, period || undefined) : [];
+    const result = await pushToSheet(buildSheetRows(responses, interviews, MODE));
 
     if (result.status !== "sent") {
       return NextResponse.json({ error: result.message }, { status: 502 });

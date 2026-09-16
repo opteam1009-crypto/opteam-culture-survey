@@ -9,6 +9,7 @@ import {
 } from "@/lib/questions";
 import { computeScores } from "@/lib/score";
 import { sendSubmissionNotification } from "@/lib/mail";
+import { buildScoreRow, pushToSheet, sheetsConfigured } from "@/lib/sheets";
 
 export const dynamic = "force-dynamic";
 
@@ -143,6 +144,28 @@ export async function POST(request: Request) {
     for (const [code, value] of Object.entries(texts)) {
       await q`insert into survey_answers (response_id, question_code, value_text)
               values (${response.id}, ${code}, ${value})`;
+    }
+
+    // 구글 시트에 이 사람의 점수를 바로 올립니다.
+    // 시트가 느리거나 막혀 있어도 응답자의 제출은 이미 끝난 일이므로, 짧게만
+    // 기다리고 실패는 로그로만 남깁니다. 놓친 건은 대시보드의 「시트로 보내기」로
+    // 언제든 다시 올릴 수 있습니다.
+    if (sheetsConfigured()) {
+      const synced = await pushToSheet(
+        [
+          buildScoreRow({
+            period,
+            name,
+            department: department.name,
+            overallScore: overall,
+            sectionScores: sections,
+          }),
+        ],
+        8_000,
+      );
+      if (synced.status === "failed") {
+        console.error("[submit] 시트 반영 실패", synced.message);
+      }
     }
 
     // 알림 발송은 실패해도 제출을 되돌리지 않습니다. 내용은 notification_log 에 남습니다.
