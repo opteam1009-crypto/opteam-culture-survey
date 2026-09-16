@@ -15,9 +15,13 @@
  * 시트 모양을 두 가지 지원하고, 어느 쪽인지는 헤더를 보고 스스로 정합니다.
  *
  *   가로형 — 사람이 행, 회차가 열. 흔한 명부 형태입니다.
- *       이름   | … | 26.08 정기면담 | 26.09 정기면담
- *       김철수 | … |      68       |      72        ← 이 칸에 종합점수를 넣습니다
+ *       이름   | … | 26.09 정기설문 | 26.09 정기면담
+ *       김철수 | … |      72       |  9/24 14:00
+ *                        ↑ 점수        ↑ 면담 일정
  *     회차로 읽히는 헤더(26.09 / 2026-09 / 2026년 9월 …)를 찾아 그 열에 씁니다.
+ *     한 회차에 열이 여럿이면 제목으로 갈라봅니다. 「면담」이 들어간 칸은 면담
+ *     일정 자리로, 그 밖(「설문」 포함)은 점수 자리로 봅니다. 설문 점수가 면담
+ *     칸에 들어가면 안 되니까요.
  *
  *   세로형 — 한 줄이 한 사람의 한 회차.
  *       회차 | 이름 | 부서 | 종합점수 | 면담일정 …
@@ -44,8 +48,14 @@ var SHEET_NAME = '';
 /** 항목 이름이 적힌 행 번호. 위에 제목 줄이 있으면 2, 3 … 으로 바꿔주세요. */
 var HEADER_ROW = 1;
 
-/** 가로형에서 회차 칸에 넣을 값. 영역별 점수를 넣고 싶으면 '리더십 및 소통 점수' 처럼. */
+/** 가로형의 「설문」 칸에 넣을 값. 영역별 점수를 넣고 싶으면 '리더십 및 소통 점수' 처럼. */
 var WIDE_VALUE_FIELD = '종합점수';
+
+/** 가로형의 「면담」 칸에 넣을 값. */
+var WIDE_INTERVIEW_FIELD = '면담일정';
+
+/** 열 제목이 이 말을 포함하면 면담 칸으로 봅니다. */
+var INTERVIEW_WORDS = ['면담', '미팅', '1:1'];
 
 /** 명부에 없는 사람이 설문을 냈을 때 행을 새로 달지. 끄면 건너뛰고 알려만 줍니다. */
 var ADD_MISSING_PEOPLE = true;
@@ -118,10 +128,16 @@ function doGet(e) {
   var columns = [];
   for (var c = 0; c < layout.headers.length; c++) {
     var period = layout.periodOfCol[c];
+    var seen = '(안 채움)';
+    if (period) {
+      seen = period + (layout.kindOfCol[c] === 'interview' ? ' 면담 일정' : ' 설문 점수');
+    } else if (layout.fieldOfCol[c] && isKnownField(layout.fieldOfCol[c])) {
+      seen = layout.fieldOfCol[c];
+    }
     columns.push({
       열: columnLetter(c + 1),
       시트헤더: String(layout.headers[c]).replace(/\n/g, ' '),
-      인식: period ? period + ' 회차 점수' : (layout.fieldOfCol[c] && isKnownField(layout.fieldOfCol[c]) ? layout.fieldOfCol[c] : '(안 채움)')
+      인식: seen
     });
   }
   return json({
@@ -149,14 +165,16 @@ function readLayout() {
   var headers = sheet.getRange(HEADER_ROW, 1, 1, lastCol).getValues()[0];
   var fieldOfCol = [];
   var periodOfCol = [];
+  var kindOfCol = [];
   var colOf = {};
   for (var c = 0; c < headers.length; c++) {
     var field = fieldName(headers[c]);
     // 같은 항목이 두 번 나오면 첫 칸만 씁니다.
     fieldOfCol[c] = (field && colOf[field] === undefined) ? field : '';
     if (fieldOfCol[c]) colOf[field] = c;
-    // 회차로 읽히는 헤더(26.09 정기면담 등)는 그 회차의 점수 칸으로 봅니다.
+    // 회차로 읽히는 헤더(26.09 정기설문 등)는 그 회차의 칸으로 봅니다.
     periodOfCol[c] = colOf['회차'] === c ? '' : periodFromHeader(headers[c]);
+    kindOfCol[c] = periodOfCol[c] ? columnKind(headers[c]) : '';
   }
 
   if (colOf['이름'] === undefined) {
@@ -178,6 +196,7 @@ function readLayout() {
     headers: headers,
     fieldOfCol: fieldOfCol,
     periodOfCol: periodOfCol,
+    kindOfCol: kindOfCol,
     colOf: colOf,
     lastCol: lastCol,
     lastRow: lastRow,
@@ -209,11 +228,18 @@ function writeWide(layout, rows) {
     if (who && rowOfName[who] === undefined) rowOfName[who] = r;
   }
 
-  var colOfPeriod = {};
+  // 같은 회차에 열이 여럿이면 제목으로 갈라 담습니다.
+  // 같은 종류가 또 있으면 왼쪽 칸을 씁니다(먼저 만든 칸이 원본일 테니).
+  var scoreCol = {};
+  var interviewCol = {};
   for (var c = 0; c < layout.periodOfCol.length; c++) {
     var p = layout.periodOfCol[c];
-    // 같은 회차 열이 여럿이면 가장 오른쪽(최근에 단 칸)을 씁니다.
-    if (p) colOfPeriod[p] = c;
+    if (!p) continue;
+    if (layout.kindOfCol[c] === 'interview') {
+      if (interviewCol[p] === undefined) interviewCol[p] = c;
+    } else if (scoreCol[p] === undefined) {
+      scoreCol[p] = c;
+    }
   }
 
   var updated = 0;
@@ -227,11 +253,17 @@ function writeWide(layout, rows) {
     if (!name) continue;
 
     var period = normalizePeriod(incoming['회차코드'] || incoming['회차']);
-    var col = colOfPeriod[period];
-    if (col === undefined) {
+    var score = incoming[WIDE_VALUE_FIELD];
+    var schedule = incoming[WIDE_INTERVIEW_FIELD];
+    var hasScore = score !== '' && score !== null && score !== undefined;
+    var hasSchedule = schedule !== '' && schedule !== null && schedule !== undefined;
+
+    // 넣을 값이 있는데 넣을 칸이 없으면 아무 데나 쓰지 않고 알려줍니다.
+    if (hasScore && scoreCol[period] === undefined) {
       missingPeriods[period] = true;
       continue;
     }
+    if (!hasScore && !hasSchedule) continue;
 
     var at = rowOfName[name];
     if (at === undefined) {
@@ -254,9 +286,9 @@ function writeWide(layout, rows) {
       updated++;
     }
 
-    var value = incoming[WIDE_VALUE_FIELD];
-    if (value !== '' && value !== null && value !== undefined) {
-      body[at][col] = coerce(value);
+    if (hasScore) body[at][scoreCol[period]] = coerce(score);
+    if (hasSchedule && interviewCol[period] !== undefined) {
+      body[at][interviewCol[period]] = schedule;
     }
   }
 
@@ -266,8 +298,8 @@ function writeWide(layout, rows) {
   var periods = Object.keys(missingPeriods);
   if (periods.length) {
     result.error =
-      periods.join(', ') + ' 회차 칸이 시트에 없습니다. 그 회차 제목(예: ' +
-      shortLabel(periods[0]) + ')으로 열을 하나 만들어 주세요.';
+      periods.join(', ') + ' 회차의 설문 칸이 시트에 없습니다. 「' +
+      shortLabel(periods[0]) + ' 정기설문」 같은 제목으로 열을 하나 만들어 주세요.';
     result.ok = false;
   }
   var people = Object.keys(missingPeople);
@@ -353,6 +385,15 @@ function isKnownField(field) {
                '종합점수', '위험도', '면담상태', '면담일정', '면담희망1', '면담희망2', '면담주제'];
   if (known.indexOf(field) >= 0) return true;
   return /점수$/.test(field);
+}
+
+/** 회차 열이 「면담」 칸인지 「설문(점수)」 칸인지. 제목에 단서가 없으면 점수로 봅니다. */
+function columnKind(header) {
+  var text = String(header == null ? '' : header);
+  for (var i = 0; i < INTERVIEW_WORDS.length; i++) {
+    if (text.indexOf(INTERVIEW_WORDS[i]) >= 0) return 'interview';
+  }
+  return 'score';
 }
 
 function hasAnyPeriodColumn(periodOfCol) {
