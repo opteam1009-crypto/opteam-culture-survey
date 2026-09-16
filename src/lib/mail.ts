@@ -15,7 +15,7 @@ export interface NotificationInput {
 export const VISIBILITY_LABEL: Record<string, string> = {
   both: "대표이사 + 인사책임자",
   ceo_only: "대표이사에게 전달",
-  hr_only: "인사책임자만",
+  hr_only: "인사책임자에게 전달",
 };
 
 /**

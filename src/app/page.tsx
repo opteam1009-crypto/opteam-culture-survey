@@ -51,7 +51,7 @@ export default async function SurveyPage() {
             <b className="text-ink">인사평가와는 무관합니다.</b>
           </Notice>
           <Notice icon="🔒">
-            응답 내용은 본인이 선택한 열람자만 확인하며, 인사평가 등 다른 목적으로는 절대 사용되지
+            응답 내용은 대표이사와 인사책임자만 확인하며, 인사평가 등 다른 목적으로는 절대 사용되지
             않습니다. <b className="text-ink">솔직한 응답으로 인한 불이익은 일절 없습니다.</b>
           </Notice>
         </div>

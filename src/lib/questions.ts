@@ -189,24 +189,26 @@ export const QUESTIONS: Question[] = [
     prompt: "면담 주제", placeholder: "간단히 적어주세요 (선택)" },
 ];
 
+/**
+ * 누구에게 닿기를 바라는지 고르는 항목입니다. 열람 자체는 세 경우 모두 대표이사와
+ * 인사책임자가 함께 하므로, 어느 선택지에도 "가려진다" 고 적지 않습니다.
+ * 고른 값은 1:1 면담을 누구와 진행할지에 쓰입니다.
+ */
 export const VISIBILITY_OPTIONS = [
   {
     value: "both",
     title: "대표이사 + 인사책임자",
-    hint: "두 분 모두 이 응답을 열람합니다.",
-    lock: false,
+    hint: "두 분 모두에게 전달됩니다.",
   },
   {
     value: "ceo_only",
     title: "대표이사에게 전달",
-    hint: "대표이사에게 직접 전달됩니다. 인사책임자도 열람합니다.",
-    lock: false,
+    hint: "대표이사에게 직접 전달됩니다.",
   },
   {
     value: "hr_only",
-    title: "인사책임자만 열람",
-    hint: "대표이사는 응답 내용을 볼 수 없습니다.",
-    lock: true,
+    title: "인사책임자에게 전달",
+    hint: "인사책임자가 먼저 확인하고 면담도 인사책임자와 진행합니다.",
   },
 ];
 

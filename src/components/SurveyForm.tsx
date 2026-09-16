@@ -211,7 +211,6 @@ export default function SurveyForm({ departments, periodLabel }: Props) {
                         onChange={() => setVisibility(option.value)}
                       />
                       <span className="flex items-center gap-1.5">
-                        {option.lock && <span aria-hidden>🔒</span>}
                         <span
                           className={`text-sm font-bold ${active ? "text-brand" : "text-ink"}`}
                         >
@@ -228,11 +227,11 @@ export default function SurveyForm({ departments, periodLabel }: Props) {
               </div>
               <p className="mt-3 rounded-xl bg-gray-50 px-4 py-3.5 text-[14px] leading-[1.75] text-ink/75">
                 대표이사에게 바로 닿게 하고 싶다면{" "}
-                <b className="text-ink">「대표이사에게 전달」</b>을, 대표이사에게는 알리지 않고
-                인사책임자와만 이야기하고 싶다면 <b className="text-ink">「인사책임자만 열람」</b>을
-                선택해 주세요. <b className="text-ink">「인사책임자만 열람」</b>을 고르시면 대표이사에게는
-                응답 내용과 이름이 표시되지 않습니다. 인사책임자는 설문 운영을 맡고 있어 모든 응답을
-                열람합니다. 회사 전체 평균·응답 건수 같은 통계에는 누구의 것인지 알 수 없는 형태로
+                <b className="text-ink">「대표이사에게 전달」</b>을, 인사책임자와 먼저 이야기하고
+                싶다면 <b className="text-ink">「인사책임자에게 전달」</b>을 선택해 주세요.
+                어느 쪽을 고르셔도 <b className="text-ink">응답 내용은 대표이사와 인사책임자
+                두 분이 함께 열람합니다.</b> 이 선택은 1:1 면담을 누구와 진행할지에 쓰입니다.
+                회사 전체 평균·응답 건수 같은 통계에는 누구의 것인지 알 수 없는 형태로
                 반영됩니다.
               </p>
             </div>
@@ -649,8 +648,8 @@ function InterviewNotice() {
       <p className="rounded-xl bg-gray-50 px-4 py-3.5 text-[14px] leading-[1.75] text-ink/75">
         <span aria-hidden className="mr-1">🔒</span>
         면담 사실과 내용은 비밀이 보장되며, 면담으로 인한 불이익은 일절 없습니다. 위에서
-        「대표이사만 열람」 또는 「인사책임자만 열람」을 선택하신 경우 면담도 해당 열람자와만
-        진행됩니다.
+        「대표이사에게 전달」 또는 「인사책임자에게 전달」을 선택하신 경우 면담은 해당
+        담당자와 진행됩니다.
       </p>
     </div>
   );

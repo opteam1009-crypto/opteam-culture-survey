@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ROLE_LABEL, readSession } from "@/lib/auth";
+import { readSession } from "@/lib/auth";
 import { formatDateTime, formatPeriod } from "@/lib/period";
 import { loadInterviewRequests, loadVisibleResponses } from "@/lib/queries";
 import { WEEKDAY_LABELS, parseSlot } from "@/lib/schedule";
@@ -46,7 +46,8 @@ export default async function InterviewsPage({
       name: item.name,
       department: item.department,
       riskLevel: item.riskLevel,
-      ceoOnly: item.visibility === "ceo_only",
+      // 면담 상대를 지정한 응답. 열람 범위와는 별개로 일정을 잡을 때 참고합니다.
+      hrOnly: item.visibility === "hr_only",
       topic: item.topic,
       // 칩을 눌렀을 때 그 자리에서 일정을 바꾸기 위해 함께 실어 보냅니다.
       status: item.status,
@@ -84,8 +85,7 @@ export default async function InterviewsPage({
         <div>
           <h1 className="text-xl font-bold">1:1 면담 희망 일시</h1>
           <p className="mt-1 text-sm text-muted">
-            {ROLE_LABEL[session.role]} 계정에 공개된 {requests.length}명의 희망 일시입니다.
-            🔒 표시는 해당 열람자와만 면담하는 응답자입니다.
+            {formatPeriod(period)}에 접수된 {requests.length}명의 희망 일시입니다.
           </p>
         </div>
         <div className="flex items-end gap-2">
@@ -160,7 +160,7 @@ export default async function InterviewsPage({
                       )}
                       <p className="mt-0.5 text-xs font-normal text-muted">
                         {item.department}
-                        {item.visibility === "hr_only" ? " · 🔒 인사책임자와만" : ""}
+                        {item.visibility === "hr_only" ? " · 인사책임자와 면담 희망" : ""}
                       </p>
                     </td>
                     <td className="px-4 py-3 align-top text-muted">{item.topic || "—"}</td>

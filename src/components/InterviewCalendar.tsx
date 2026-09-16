@@ -16,7 +16,8 @@ export interface CalendarEntry {
   name: string;
   department: string;
   riskLevel: number;
-  ceoOnly: boolean;
+  /** 「인사책임자에게 전달」 을 고른 응답. 면담을 인사책임자와 하고 싶다는 뜻입니다. */
+  hrOnly: boolean;
   topic: string;
   /** 1순위 = 1, 2순위 = 2 */
   rank: 1 | 2;
@@ -333,14 +334,16 @@ function PersonChip({
     <button
       type="button"
       onClick={onPick}
-      title={`${entry.department} ${entry.name} · ${entry.rank}순위 · ${entry.raw}`}
+      title={`${entry.department} ${entry.name} · ${entry.rank}순위 · ${entry.raw}${
+        entry.hrOnly ? " · 인사책임자와 면담 희망" : ""
+      }`}
       className={`block w-full rounded px-2 py-1.5 text-left text-xs font-semibold leading-tight transition hover:brightness-95 ${
         active ? "ring-2 ring-brand ring-offset-1" : ""
       }`}
       style={{ background: tone.bg, color: tone.ink }}
     >
       <span className="block truncate">
-        {entry.ceoOnly && <span aria-hidden>🔒</span>}
+        {entry.hrOnly && <span aria-hidden>🤝</span>}
         {entry.name}
       </span>
       <span className="mt-0.5 block truncate text-[11px] font-normal opacity-75">
