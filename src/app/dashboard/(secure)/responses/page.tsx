@@ -7,6 +7,8 @@ import { formatScore, scoreTone } from "@/lib/score";
 import { loadTextAnswers, loadVisibleResponses } from "@/lib/queries";
 import { VISIBILITY_LABEL } from "@/lib/mail";
 import DeleteResponseButton from "@/components/DeleteResponseButton";
+import SheetSyncButton from "@/components/SheetSyncButton";
+import { sheetsConfigured } from "@/lib/sheets";
 
 export const dynamic = "force-dynamic";
 
@@ -78,6 +80,9 @@ export default async function ResponsesPage({
             >
               {rows.length}명 PDF로 저장
             </Link>
+          )}
+          {view === "list" && rows.length > 0 && sheetsConfigured() && (
+            <SheetSyncButton period={period} dept={dept} count={rows.length} />
           )}
           <div className="ml-auto flex gap-1 rounded-lg border border-line p-0.5">
             <TabLink label="응답 목록" active={view === "list"} href={buildHref({ period, dept, view: "list" })} />
