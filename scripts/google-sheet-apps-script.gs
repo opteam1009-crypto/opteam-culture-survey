@@ -30,9 +30,9 @@
  * 공통 원칙
  *   - 헤더 이름이 맞는 칸에만 씁니다. 우리가 모르는 칸(비고·담당자 같은 수기
  *     입력)은 건드리지 않습니다.
- *   - 같은 사람을 다시 보내면 덮어쓰고, 없을 때만 새 행을 답니다.
- *     그래서 여러 번 보내도 행이 늘지 않습니다.
- *   - 이미 적힌 값을 빈칸으로 지우지 않습니다.
+ *   - 기본값(WRITE_MODE='empty-only')은 빈 칸만 채웁니다. 이미 값이 있으면
+ *     건드리지 않고 건너뛴 사람 이름을 돌려줍니다.
+ *   - 행은 늘지 않습니다. 명부에 없는 이름은 쓰지 않고 알려만 줍니다.
  *
  * 헤더 이름이 아래와 다르면 ALIASES 에 한 줄 적어주면 됩니다.
  *   회차, 회차코드, 이름, 부서, 열람범위, 제출일시, 제출일자, 종합점수, 위험도,
@@ -47,7 +47,7 @@
  * 예전 코드는 칸을 통째로 덮어써서 면담 메모를 지웁니다. 그걸 막는 장치입니다.
  * (코드를 고쳤으면 「배포 관리 → 편집 → 새 버전」으로 같은 주소를 갱신하세요.)
  */
-var SCRIPT_VERSION = 3;
+var SCRIPT_VERSION = 4;
 
 /** Vercel 의 SHEETS_WEBHOOK_SECRET 과 똑같이 맞춰주세요. */
 var SECRET = '여기에_아무도_모르는_문자열';
@@ -70,6 +70,23 @@ var SCORE_COLUMN_WORD = '면담';
 
 /** 점수 뒤에 붙일 말. 시트가 「43.3점」처럼 적고 있으면 '점', 숫자만 쓰려면 ''. */
 var SCORE_SUFFIX = '점';
+
+/**
+ * 이미 값이 있는 칸을 어떻게 할지. 셋 중 하나를 고릅니다.
+ *
+ *   'empty-only'  빈 칸만 채웁니다. 값이 있으면 건드리지 않고 건너뜁니다. ← 기본
+ *                 사람이 손으로 적어둔 것을 기계가 덮는 일이 없습니다.
+ *                 건너뛴 사람은 몇 명인지 알려주니, 보고 나서 필요한 것만
+ *                 직접 고치면 됩니다.
+ *
+ *   'score-line'  칸이 「43.3점 / 예정」처럼 여러 줄이면 점수 줄만 갈아끼우고
+ *                 아래 줄(면담 메모)은 그대로 둡니다. 점수를 매달 새로
+ *                 갱신하고 싶을 때 씁니다.
+ *
+ *   'always'      칸을 통째로 덮어씁니다. 같이 적어둔 메모도 사라집니다.
+ *                 권하지 않습니다.
+ */
+var WRITE_MODE = 'empty-only';
 
 /**
  * 명부에 없는 이름이 들어왔을 때 행을 새로 달지.
@@ -272,6 +289,7 @@ function writeWide(layout, rows) {
 
   var updated = 0;
   var added = 0;
+  var skipped = [];
   var missingPeriods = {};
   var missingPeople = {};
 
@@ -290,7 +308,13 @@ function writeWide(layout, rows) {
       continue;
     }
 
+    // 값이 있는 칸을 지키는 모드면, 사람 행을 찾기 전에 칸부터 봅니다.
     var at = rowOfName[name];
+    if (at !== undefined && WRITE_MODE === 'empty-only' && filled(body[at][scoreCol[period]])) {
+      skipped.push(name);
+      continue;
+    }
+
     if (at === undefined) {
       if (!ADD_MISSING_PEOPLE) {
         missingPeople[name] = true;
@@ -312,13 +336,15 @@ function writeWide(layout, rows) {
     }
 
     var cell = scoreCol[period];
-    body[at][cell] = mergeScore(body[at][cell], score);
+    body[at][cell] =
+      WRITE_MODE === 'always' ? coerce(score) : mergeScore(body[at][cell], score);
   }
 
   writeBody(layout, body);
 
   // 쓴 것은 쓰고, 못 쓴 것이 있으면 조용히 넘기지 않고 알립니다.
-  var result = { ok: true, updated: updated, appended: added };
+  var result = { ok: true, updated: updated, appended: added, skipped: skipped.length };
+  if (skipped.length) result.건너뛴사람 = skipped;
   var trouble = [];
   var periods = Object.keys(missingPeriods);
   if (periods.length) {
@@ -507,6 +533,12 @@ function mergeScore(existing, score) {
     lines.unshift(head);       // 메모만 있던 칸
   }
   return lines.join('\n');
+}
+
+/** 칸에 이미 뭔가 적혀 있는지. 공백만 있는 칸은 빈 칸으로 봅니다. */
+function filled(value) {
+  if (value === null || value === undefined) return false;
+  return String(value).trim() !== '';
 }
 
 /** 숫자로만 된 문자열은 숫자로 넣습니다. 시트에서 평균·정렬이 되도록. */

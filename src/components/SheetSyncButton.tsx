@@ -25,7 +25,12 @@ export default function SheetSyncButton({ period, dept, count }: Props) {
 
   async function run() {
     const scope = [period || "전체 회차", dept || "전체 부서"].join(" · ");
-    if (!confirm(`${scope} ${count}명을 구글 시트로 보낼까요?\n\n이미 올라간 사람은 덮어씁니다.`)) {
+    if (
+      !confirm(
+        `${scope} ${count}명을 구글 시트로 보낼까요?\n\n` +
+          "시트에 이미 값이 있는 칸은 건드리지 않고 빈 칸만 채웁니다.",
+      )
+    ) {
       return;
     }
     setBusy(true);
@@ -41,12 +46,17 @@ export default function SheetSyncButton({ period, dept, count }: Props) {
         error?: string;
         updated?: number;
         appended?: number;
+        untouched?: number;
       };
       if (!res.ok) {
         setError(data.error ?? "보내지 못했습니다.");
         return;
       }
-      setDone(`새로 ${data.appended ?? 0}명, 갱신 ${data.updated ?? 0}명`);
+      // 건너뛴 사람이 있으면 반드시 보여줍니다. 그냥 "완료" 라고만 하면
+      // 안 들어간 사람이 있는 줄 모르고 넘어갑니다.
+      const parts = [`${data.updated ?? 0}명 입력`];
+      if (data.untouched) parts.push(`${data.untouched}명은 이미 값이 있어 건너뜀`);
+      setDone(parts.join(" · "));
     } catch {
       setError("네트워크 오류로 보내지 못했습니다.");
     } finally {

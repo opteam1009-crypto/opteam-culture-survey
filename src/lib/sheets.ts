@@ -27,6 +27,8 @@ export interface SheetPushResult {
   status: "sent" | "skipped" | "failed";
   updated: number;
   appended: number;
+  /** 이미 값이 있어 건드리지 않은 사람 수. */
+  untouched: number;
   message: string;
 }
 
@@ -178,7 +180,7 @@ export function buildSheetRows(
  * 예전 코드가 계속 도는 일이 실제로 있었습니다. 한 번 지워진 메모는 우리가
  * 되돌릴 수 없으니, 판 번호를 먼저 확인하고 쓰기 시작합니다.
  */
-const REQUIRED_SCRIPT_VERSION = 3;
+const REQUIRED_SCRIPT_VERSION = 4;
 
 /** 확인 결과를 잠시 기억해 매번 왕복하지 않게 합니다. */
 let versionCheck: { at: number; ok: boolean; message: string } | null = null;
@@ -274,12 +276,19 @@ export async function pushToSheet(
       status: "skipped",
       updated: 0,
       appended: 0,
+      untouched: 0,
       message:
         "시트 연동이 설정되지 않았습니다. Vercel 환경변수에 SHEETS_WEBHOOK_URL 을 등록해 주세요.",
     };
   }
   if (rows.length === 0) {
-    return { status: "skipped", updated: 0, appended: 0, message: "보낼 응답이 없습니다." };
+    return {
+      status: "skipped",
+      updated: 0,
+      appended: 0,
+      untouched: 0,
+      message: "보낼 응답이 없습니다.",
+    };
   }
 
   const secret = realValue(process.env.SHEETS_WEBHOOK_SECRET);
@@ -287,15 +296,21 @@ export async function pushToSheet(
   // 쓰기 전에 어떤 판이 붙어 있는지 먼저 봅니다. 지워진 메모는 되돌릴 수 없습니다.
   const version = await checkVersion(url, secret, timeoutMs);
   if (!version.ok) {
-    return { status: "failed", updated: 0, appended: 0, message: version.message };
+    return { status: "failed", updated: 0, appended: 0, untouched: 0, message: version.message };
   }
 
   const res = await callScript(url, { secret, rows }, timeoutMs);
   if (!res.ok && res.message) {
-    return { status: "failed", updated: 0, appended: 0, message: res.message };
+    return { status: "failed", updated: 0, appended: 0, untouched: 0, message: res.message };
   }
 
-  let parsed: { ok?: boolean; updated?: number; appended?: number; error?: string } = {};
+  let parsed: {
+    ok?: boolean;
+    updated?: number;
+    appended?: number;
+    skipped?: number;
+    error?: string;
+  } = {};
   try {
     parsed = JSON.parse(res.text) as typeof parsed;
   } catch {
@@ -304,6 +319,7 @@ export async function pushToSheet(
       status: "failed",
       updated: 0,
       appended: 0,
+      untouched: 0,
       message:
         "시트에서 예상 밖의 응답이 왔습니다. 웹 앱 배포의 액세스 권한을 「모든 사용자」로 두었는지 확인해 주세요.",
     };
@@ -314,6 +330,7 @@ export async function pushToSheet(
       status: "failed",
       updated: Number(parsed.updated ?? 0),
       appended: Number(parsed.appended ?? 0),
+      untouched: Number(parsed.skipped ?? 0),
       message: parsed.error ?? `시트가 오류를 돌려주었습니다. (HTTP ${res.status})`,
     };
   }
@@ -322,6 +339,7 @@ export async function pushToSheet(
     status: "sent",
     updated: Number(parsed.updated ?? 0),
     appended: Number(parsed.appended ?? 0),
+    untouched: Number(parsed.skipped ?? 0),
     message: "",
   };
 }

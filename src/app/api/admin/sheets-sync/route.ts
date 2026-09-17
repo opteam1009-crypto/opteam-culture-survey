@@ -66,6 +66,7 @@ export async function POST(request: Request) {
       ok: true,
       updated: result.updated,
       appended: result.appended,
+      untouched: result.untouched,
       total: responses.length,
     });
   } catch (err) {
