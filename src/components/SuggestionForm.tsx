@@ -8,6 +8,7 @@ import {
   MAX_TITLE,
   SUGGESTION_FIELDS,
   SUGGESTION_TOPICS,
+  exampleFor,
 } from "@/lib/suggestions";
 
 interface Department {
@@ -31,6 +32,9 @@ export default function SuggestionForm({ departments }: { departments: Departmen
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const topicRef = useRef<HTMLDivElement>(null);
+
+  // 고른 주제에 맞춰 제목·세 칸의 예시가 함께 바뀝니다.
+  const example = exampleFor(topic);
 
   const filled = SUGGESTION_FIELDS.every((f) => (body[f.code] ?? "").trim().length > 0);
   const ready = name.trim() && departmentId && topic && title.trim() && filled;
@@ -78,7 +82,7 @@ export default function SuggestionForm({ departments }: { departments: Departmen
       <section className="card p-5 sm:p-7">
         <h2 className="text-[15px] font-bold">제안자</h2>
         <p className="mt-1 text-[13px] leading-relaxed text-muted">
-          채택 여부를 회신드려야 해서 실명으로 받습니다.
+          검토 결과를 직접 알려드릴 때 사용합니다.
         </p>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <label className="text-sm">
@@ -153,7 +157,7 @@ export default function SuggestionForm({ departments }: { departments: Departmen
             value={title}
             onChange={(e) => setTitle(e.target.value.slice(0, MAX_TITLE))}
             className="field"
-            placeholder="예) 주간보고 이중 작성 없애기"
+            placeholder={`예) ${example.title}`}
           />
         </label>
       </section>
@@ -175,7 +179,7 @@ export default function SuggestionForm({ departments }: { departments: Departmen
               }
               rows={4}
               className="field mt-3 resize-y leading-relaxed"
-              placeholder={field.placeholder}
+              placeholder={`예) ${example[field.code]}`}
             />
             <p className="mt-1.5 text-right text-[11px] tabular-nums text-muted">
               {value.length} / {MAX_BODY}
@@ -193,13 +197,13 @@ export default function SuggestionForm({ departments }: { departments: Departmen
       <div className="card flex flex-wrap items-center justify-between gap-3 p-5">
         <p className="text-[13px] leading-relaxed text-muted">
           {ready ? (
-            <>제출하면 기획운영팀이 접수하고, 채택 여부를 회신드립니다.</>
+            <>보내주시면 기획운영팀이 확인하고 결과를 알려드립니다.</>
           ) : (
             <>모든 칸을 채우면 제출할 수 있습니다.</>
           )}
         </p>
         <button type="submit" className="btn-primary px-6 py-2.5 text-sm" disabled={!ready || busy}>
-          {busy ? "제출 중…" : "제안 제출"}
+          {busy ? "보내는 중…" : "제안 보내기"}
         </button>
       </div>
     </form>

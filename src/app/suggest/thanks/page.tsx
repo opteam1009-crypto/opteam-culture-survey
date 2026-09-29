@@ -10,20 +10,20 @@ export default function SuggestThanksPage() {
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-white/15 text-3xl backdrop-blur">
             ✓
           </div>
-          <h1 className="mt-5 text-xl font-bold">제안이 접수되었습니다</h1>
-          <p className="mt-2 text-sm text-white/75">좋은 의견 감사합니다.</p>
+          <h1 className="mt-5 text-xl font-bold">제안을 잘 받았습니다</h1>
+          <p className="mt-2 text-sm text-white/75">소중한 의견 감사합니다.</p>
         </div>
 
         <div className="px-8 py-7 text-left">
           <p className="text-sm leading-relaxed text-muted">
-            기획운영팀이 <b className="text-ink">월 1회 취합</b>해 대표님께 보고드린 뒤,
-            채택 여부를 알려드립니다.
+            기획운영팀이 <b className="text-ink">매월 모아</b> 대표님께 전달한 뒤,
+            검토 결과를 직접 알려드립니다.
           </p>
           <p className="mt-3 text-sm leading-relaxed text-muted">
             채택된 제안에는 포상이 있습니다.
           </p>
           <p className="mt-6 text-xs text-muted">
-            더 제안하실 내용이 있으면 언제든 다시 제출하셔도 됩니다.
+            또 떠오르는 아이디어가 있으면 언제든 편하게 보내주세요.
           </p>
         </div>
       </div>

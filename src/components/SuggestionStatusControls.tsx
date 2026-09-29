@@ -96,10 +96,10 @@ export default function SuggestionStatusControls({ id, status, reply }: Props) {
           className="field resize-y text-sm leading-relaxed"
           placeholder={
             next === "adopted"
-              ? "예) 11월부터 주간보고 양식을 통합합니다. 좋은 제안 감사합니다."
+              ? "예) 좋은 제안 감사합니다. 11월부터 주간보고 양식을 하나로 합쳐 운영하겠습니다."
               : next === "routed"
-                ? "예) 개인 고충에 해당하여 고충처리위원에게 전달했습니다. 10일 이내에 처리 결과를 통보받으실 수 있습니다."
-                : "채택·미채택 이유를 적어주세요. 이 내용이 제안자에게 전달됩니다."
+                ? "예) 말씀해 주신 내용은 고충처리위원이 더 세심하게 도와드릴 수 있어 전달드렸습니다. 10일 이내에 결과를 안내받으실 수 있습니다."
+                : "예) 의견 감사합니다. 검토해 보니 지금은 ○○ 사정으로 바로 적용하기 어렵지만, 하반기에 다시 살펴보겠습니다."
           }
         />
       </label>

@@ -34,7 +34,7 @@ export async function POST(request: Request) {
   // 제안자는 묵살당했다고 느끼고 다음부터 제안하지 않습니다.
   if (isClosed(status) && !reply) {
     return NextResponse.json(
-      { error: "채택·미채택·이관으로 바꾸려면 제안자에게 회신할 내용을 적어주세요." },
+      { error: "채택·미채택·담당 창구로 전달은 제안자에게 보낼 회신 내용을 적어야 저장됩니다." },
       { status: 400 },
     );
   }
