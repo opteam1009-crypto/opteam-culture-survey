@@ -47,7 +47,7 @@ export default async function SecureLayout({ children }: { children: React.React
         */}
         <div className="mx-auto max-w-6xl px-4 py-2.5 sm:px-5 sm:py-3.5">
           <div className="flex items-center gap-3 sm:gap-6">
-            <Link href="/dashboard/suggestions" className="shrink-0 text-sm font-bold">
+            <Link href="/dashboard/summary" className="shrink-0 text-sm font-bold">
               사내 진단 대시보드
             </Link>
             {/* 메뉴가 일곱 개라 넓은 화면(1024px~)에서만 한 줄에 둡니다. */}
