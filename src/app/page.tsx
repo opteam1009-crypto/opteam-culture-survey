@@ -52,7 +52,7 @@ export default async function SuggestPage() {
         */}
         <div className="bg-gradient-to-br from-brand via-[#24589f] to-accent px-6 py-10 text-white sm:px-9 sm:py-12">
           <p className="text-xs font-semibold tracking-wider text-white/70">상시 접수</p>
-          <h1 className="mt-2 text-balance text-[26px] font-bold leading-tight sm:text-[30px]">
+          <h1 className="mt-2 text-balance text-[26px] font-extrabold leading-tight sm:text-[30px]">
             {PROGRAM.name}
           </h1>
           <p className="mt-4 text-pretty text-[15px] leading-[1.8] text-white/85">
