@@ -14,6 +14,7 @@ export const dynamic = "force-dynamic";
  */
 const NAV: NavItem[][] = [
   [
+    { href: "/dashboard/summary", label: "종합" },
     { href: "/dashboard/suggestions", label: PROGRAM.short },
     { href: "/dashboard/harassment", label: "괴롭힘 신고" },
     { href: "/dashboard/grievance", label: "노사 고충" },
