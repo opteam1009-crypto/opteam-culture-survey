@@ -540,3 +540,40 @@ export async function loadFlaggedAnswers(role: Role, period: string): Promise<Fl
     .filter((row) => row.severity >= 1)
     .sort((a, b) => b.severity - a.severity);
 }
+
+// ── 성장 제안제도 ───────────────────────────────────────────────────────
+// 설문과 달리 열람 범위가 없습니다. 실명·공개 제안이고 처리 과정을 남기는
+// 자료라, 두 계정이 같은 것을 봅니다.
+
+import type { Suggestion } from "./suggestions";
+
+export async function loadSuggestions(period?: string): Promise<Suggestion[]> {
+  await ensureSchema();
+  return (await sql()`
+    select id, period, submitted_at, proposer_name, department_id, department_name,
+           topic, title, situation, proposal, expect, status, reply, replied_at, handled_by
+      from suggestions
+     where (${period ?? null}::text is null or period = ${period ?? null})
+     order by submitted_at desc
+  `) as Suggestion[];
+}
+
+export async function loadSuggestion(id: string): Promise<Suggestion | null> {
+  await ensureSchema();
+  const rows = (await sql()`
+    select id, period, submitted_at, proposer_name, department_id, department_name,
+           topic, title, situation, proposal, expect, status, reply, replied_at, handled_by
+      from suggestions
+     where id = ${id}::uuid
+  `) as Suggestion[];
+  return rows[0] ?? null;
+}
+
+/** 접수월 목록(최근 순). 회차 고르는 자리에 씁니다. */
+export async function loadSuggestionPeriods(): Promise<string[]> {
+  await ensureSchema();
+  const rows = (await sql()`
+    select distinct period from suggestions order by period desc
+  `) as { period: string }[];
+  return rows.map((r) => r.period);
+}

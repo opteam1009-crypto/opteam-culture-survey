@@ -159,6 +159,115 @@ async function logNotification(
   }
 }
 
+export interface SuggestionMailInput {
+  id: string;
+  name: string;
+  department: string;
+  topic: string;
+  title: string;
+  situation: string;
+  proposal: string;
+  expect: string;
+  dashboardUrl: string;
+}
+
+/**
+ * 성장 제안 접수 알림.
+ *
+ * 상시 창구라 언제 들어올지 모릅니다. 제목만 보내고 대시보드에서 읽게 하면
+ * 며칠씩 묵히게 되므로, 내용을 그대로 담아 메일에서 바로 판단할 수 있게 합니다.
+ */
+export async function sendSuggestionNotification(input: SuggestionMailInput): Promise<void> {
+  const { TOPIC_LABEL } = await import("./suggestions");
+  const topic = TOPIC_LABEL[input.topic] ?? input.topic;
+  const subject = `[성장 제안] ${input.department} ${input.name} — ${input.title}`;
+
+  const text = [
+    `제안자: ${input.department} ${input.name}`,
+    `주제: ${topic}`,
+    `제목: ${input.title}`,
+    "",
+    `[현황]`,
+    input.situation,
+    "",
+    `[제안]`,
+    input.proposal,
+    "",
+    `[기대효과]`,
+    input.expect,
+    "",
+    input.dashboardUrl,
+  ].join("\n");
+
+  const html = `
+    <div style="font-family:-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;max-width:640px">
+      <h2 style="margin:0 0 4px;font-size:18px">${escapeHtml(input.title)}</h2>
+      <p style="margin:0 0 16px;color:#6b6a67;font-size:13px">
+        ${escapeHtml(input.department)} ${escapeHtml(input.name)} · ${escapeHtml(topic)}
+      </p>
+      <table style="border-collapse:collapse;width:100%;font-size:14px">
+        ${block("현황", input.situation)}
+        ${block("제안", input.proposal)}
+        ${block("기대효과", input.expect)}
+      </table>
+      <p style="margin:18px 0 0">
+        <a href="${escapeAttr(input.dashboardUrl)}"
+           style="display:inline-block;padding:9px 16px;background:#1f4d8f;color:#fff;border-radius:8px;text-decoration:none;font-size:13px">
+          대시보드에서 처리하기
+        </a>
+      </p>
+    </div>`;
+
+  await deliver(null, subject, text, html);
+}
+
+/** 제안 메일의 한 덩어리(제목 + 본문). 줄바꿈을 살려 보여줍니다. */
+function block(label: string, value: string): string {
+  return `<tr>
+    <td style="padding:10px 0;border-top:1px solid #eceae6">
+      <div style="color:#6b6a67;font-size:12px;font-weight:700;margin-bottom:4px">${escapeHtml(label)}</div>
+      <div style="white-space:pre-wrap;line-height:1.7">${escapeHtml(value)}</div>
+    </td>
+  </tr>`;
+}
+
+/**
+ * 수신자 확인 → 발송 → 기록까지 한 번에. 발송 수단이 없거나 실패해도
+ * 던지지 않고 notification_log 에 남깁니다.
+ */
+async function deliver(
+  responseId: string | null,
+  subject: string,
+  text: string,
+  html: string,
+): Promise<void> {
+  const to = recipients();
+  const q = sql();
+  if (to.length === 0) {
+    await logNotification(q, responseId, "", subject, text, "skipped", "NOTIFY_EMAILS 미설정");
+    return;
+  }
+
+  let status = "pending";
+  let error: string | null = null;
+  try {
+    if (process.env.RESEND_API_KEY) {
+      await sendViaResend(to, subject, text, html);
+      status = "sent";
+    } else if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+      await sendViaSmtp(to, subject, text, html);
+      status = "sent";
+    } else {
+      status = "queued";
+      error = "발송 수단(RESEND_API_KEY 또는 SMTP_*)이 설정되지 않았습니다.";
+    }
+  } catch (err) {
+    status = "failed";
+    error = err instanceof Error ? err.message : String(err);
+  }
+  await logNotification(q, responseId, to.join(", "), subject, text, status, error);
+}
+
 export interface InterviewMailInput {
   name: string;
   department: string;

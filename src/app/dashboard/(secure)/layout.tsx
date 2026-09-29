@@ -9,6 +9,7 @@ const NAV = [
   { href: "/dashboard", label: "현황" },
   { href: "/dashboard/responses", label: "응답 열람" },
   { href: "/dashboard/interviews", label: "면담 일정" },
+  { href: "/dashboard/suggestions", label: "성장 제안" },
   { href: "/dashboard/settings", label: "설정" },
 ];
 
@@ -45,11 +46,18 @@ export default async function SecureLayout({ children }: { children: React.React
               ))}
             </nav>
             <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3">
+              {/* 설문과 제안이 당분간 함께 돕니다. 둘 다 열어볼 수 있어야 합니다. */}
               <Link
                 href="/"
                 className="hidden text-xs text-muted transition hover:text-ink sm:inline"
               >
                 설문 화면
+              </Link>
+              <Link
+                href="/suggest"
+                className="hidden text-xs text-muted transition hover:text-ink sm:inline"
+              >
+                제안 화면
               </Link>
               <span className="rounded-full bg-brandSoft px-2 py-1 text-[11px] font-semibold text-brand sm:px-2.5 sm:text-xs">
                 {ROLE_LABEL[session.role]}
@@ -74,6 +82,12 @@ export default async function SecureLayout({ children }: { children: React.React
               className="shrink-0 rounded-md px-2.5 py-1.5 text-sm text-muted transition hover:bg-gray-50 hover:text-ink"
             >
               설문 화면
+            </Link>
+            <Link
+              href="/suggest"
+              className="shrink-0 rounded-md px-2.5 py-1.5 text-sm text-muted transition hover:bg-gray-50 hover:text-ink"
+            >
+              제안 화면
             </Link>
           </nav>
         </div>
