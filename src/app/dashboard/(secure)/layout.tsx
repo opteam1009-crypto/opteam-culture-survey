@@ -74,8 +74,16 @@ export default async function SecureLayout({ children }: { children: React.React
             </div>
           </div>
 
-          {/* 좁은 화면 전용 메뉴 줄. 항목이 늘어도 옆으로 밀어 볼 수 있습니다. */}
-          <nav className="-mx-1 mt-2 flex items-center gap-1 overflow-x-auto lg:hidden">
+          {/*
+            좁은 화면 전용 메뉴 줄. 한 줄에 다 들어가지 않아 옆으로 밀어 봅니다.
+            끝에서 글자가 뚝 잘리면 깨진 것처럼 보이므로, 오른쪽 가장자리를 흐리게 해
+            더 있다는 것을 알리고, 지금 보는 메뉴는 화면 안으로 끌어옵니다(DashboardNav).
+          */}
+          <div className="relative mt-2 lg:hidden">
+          <nav
+            data-scroll-nav
+            className="-mx-1 flex items-center gap-1 overflow-x-auto pr-10 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          >
             <DashboardNav groups={NAV} />
             <span aria-hidden className="mx-1.5 h-4 w-px shrink-0 bg-line" />
             <Link
@@ -91,6 +99,11 @@ export default async function SecureLayout({ children }: { children: React.React
               제안 화면
             </Link>
           </nav>
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-y-0 -right-1 w-12 bg-gradient-to-l from-white via-white/80 to-transparent"
+          />
+          </div>
         </div>
       </header>
       <main className="mx-auto max-w-6xl px-4 py-5 sm:px-5 sm:py-7 print:max-w-none print:px-0 print:py-0">{children}</main>

@@ -55,7 +55,7 @@ export default async function SuggestionsPage({
         </Link>
       </header>
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-3 gap-2 sm:gap-3">
         <Tile label="전체" value={all.length} />
         <Tile
           label="회신 대기"
@@ -155,15 +155,19 @@ function Tile({
   alert?: boolean;
 }) {
   return (
-    <div className="card p-4">
-      <p className="text-xs font-semibold text-muted">{label}</p>
+    // 좁은 화면에서도 셋을 한 줄에 둡니다. 세로로 쌓으면 첫 화면 절반을 숫자 셋이
+    // 차지해 정작 목록이 한참 아래로 밀립니다. 긴 보충 설명은 넓은 화면에서만.
+    <div className="card p-3 sm:p-4">
+      <p className="truncate text-[11px] font-semibold text-muted sm:text-xs">{label}</p>
       <p
-        className={`mt-1 text-2xl font-bold tabular-nums ${alert ? "text-[#93441f]" : "text-ink"}`}
+        className={`mt-1 text-xl font-bold tabular-nums sm:text-2xl ${alert ? "text-[#93441f]" : "text-ink"}`}
       >
         {value}
-        <span className="ml-0.5 text-sm font-semibold">건</span>
+        <span className="ml-0.5 text-xs font-semibold sm:text-sm">건</span>
       </p>
-      {note && <p className="mt-0.5 text-[11px] leading-relaxed text-muted">{note}</p>}
+      {note && (
+        <p className="mt-0.5 hidden text-[11px] leading-relaxed text-muted sm:block">{note}</p>
+      )}
     </div>
   );
 }

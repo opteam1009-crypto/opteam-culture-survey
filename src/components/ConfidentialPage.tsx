@@ -44,7 +44,7 @@ export function ConfidentialThanks({ kind }: { kind: ConfidentialKind }) {
     <main className="mx-auto flex min-h-screen max-w-lg flex-col items-center justify-center px-5 py-16">
       <div className="card w-full p-8">
         <p className="text-xs font-semibold text-brand">{channel.receiver}</p>
-        <h1 className="mt-1.5 text-xl font-bold">잘 접수되었습니다</h1>
+        <h1 className="mt-1.5 text-xl font-bold">접수가 완료되었습니다</h1>
         <p className="mt-4 text-pretty text-sm leading-[1.8] text-ink/75">{channel.after}</p>
         <p className="mt-6 text-xs text-muted">이 창은 닫으셔도 됩니다.</p>
       </div>
