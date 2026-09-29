@@ -61,7 +61,7 @@ export default function ConfidentialForm({ kind, path, fields, departments }: Pr
       <section className="card p-5 sm:p-7">
         <h2 className="text-[15px] font-bold">접수하시는 분</h2>
         <p className="mt-1 text-pretty text-[13px] leading-relaxed text-muted">
-          처리 결과를 알려드리고, 필요하면 따로 말씀을 나누기 위해 여쭙니다.
+          처리 결과 안내와 추가 확인이 필요할 때 연락드리기 위해 받고 있습니다.
         </p>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <label className="text-sm">

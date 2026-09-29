@@ -2,17 +2,27 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ROLE_LABEL, readSession } from "@/lib/auth";
 import LogoutButton from "@/components/LogoutButton";
+import DashboardNav, { type NavItem } from "@/components/DashboardNav";
 import { PROGRAM } from "@/lib/suggestions";
 
 export const dynamic = "force-dynamic";
 
-const NAV = [
-  { href: "/dashboard", label: "현황" },
-  { href: "/dashboard/responses", label: "응답 열람" },
-  { href: "/dashboard/interviews", label: "면담 일정" },
-  { href: "/dashboard/suggestions", label: PROGRAM.short },
-  { href: "/dashboard/reports", label: "고충·신고" },
-  { href: "/dashboard/settings", label: "설정" },
+/**
+ * 메뉴 묶음. 월별 설문과 상시 접수 창구는 성격이 달라 구분선으로 나눕니다.
+ * 상시 접수는 창구마다 다루는 사람과 기한이 달라 탭을 따로 둡니다.
+ */
+const NAV: NavItem[][] = [
+  [
+    { href: "/dashboard", label: "현황" },
+    { href: "/dashboard/responses", label: "응답 열람" },
+    { href: "/dashboard/interviews", label: "면담 일정" },
+  ],
+  [
+    { href: "/dashboard/suggestions", label: PROGRAM.short },
+    { href: "/dashboard/harassment", label: "괴롭힘 신고" },
+    { href: "/dashboard/grievance", label: "노사 고충" },
+  ],
+  [{ href: "/dashboard/settings", label: "설정" }],
 ];
 
 export default async function SecureLayout({ children }: { children: React.ReactNode }) {
@@ -36,28 +46,21 @@ export default async function SecureLayout({ children }: { children: React.React
             <Link href="/dashboard" className="shrink-0 text-sm font-bold">
               사내 진단 대시보드
             </Link>
-            <nav className="-mx-1 hidden items-center gap-1 sm:flex">
-              {NAV.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="rounded-md px-2.5 py-1.5 text-sm text-muted transition hover:bg-gray-50 hover:text-ink"
-                >
-                  {item.label}
-                </Link>
-              ))}
+            {/* 메뉴가 일곱 개라 넓은 화면(1024px~)에서만 한 줄에 둡니다. */}
+            <nav className="-mx-1 hidden items-center lg:flex">
+              <DashboardNav groups={NAV} />
             </nav>
             <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3">
               {/* 설문과 제안이 당분간 함께 돕니다. 둘 다 열어볼 수 있어야 합니다. */}
               <Link
                 href="/"
-                className="hidden text-xs text-muted transition hover:text-ink sm:inline"
+                className="hidden text-xs text-muted transition hover:text-ink lg:inline"
               >
                 설문 화면
               </Link>
               <Link
                 href="/suggest"
-                className="hidden text-xs text-muted transition hover:text-ink sm:inline"
+                className="hidden text-xs text-muted transition hover:text-ink lg:inline"
               >
                 제안 화면
               </Link>
@@ -69,16 +72,9 @@ export default async function SecureLayout({ children }: { children: React.React
           </div>
 
           {/* 좁은 화면 전용 메뉴 줄. 항목이 늘어도 옆으로 밀어 볼 수 있습니다. */}
-          <nav className="-mx-1 mt-2 flex items-center gap-1 overflow-x-auto sm:hidden">
-            {NAV.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="shrink-0 rounded-md px-2.5 py-1.5 text-sm text-muted transition hover:bg-gray-50 hover:text-ink"
-              >
-                {item.label}
-              </Link>
-            ))}
+          <nav className="-mx-1 mt-2 flex items-center gap-1 overflow-x-auto lg:hidden">
+            <DashboardNav groups={NAV} />
+            <span aria-hidden className="mx-1.5 h-4 w-px shrink-0 bg-line" />
             <Link
               href="/"
               className="shrink-0 rounded-md px-2.5 py-1.5 text-sm text-muted transition hover:bg-gray-50 hover:text-ink"
