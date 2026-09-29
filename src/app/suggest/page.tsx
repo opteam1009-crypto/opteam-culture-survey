@@ -22,7 +22,7 @@ const ROUTES = [
     href: "/harassment",
     label: "직장 내 괴롭힘",
     to: "직장 내 괴롭힘 신고 창구",
-    note: "접수되면 회사가 지체 없이 사실관계를 확인합니다",
+    note: "접수 즉시 회사가 사실관계를 확인합니다",
   },
 ];
 
@@ -47,15 +47,15 @@ export default async function SuggestPage() {
     <main className="mx-auto max-w-3xl px-4 py-8 sm:px-5 sm:py-12">
       <header className="card overflow-hidden">
         {/*
-          머리말은 가운데로 둡니다. 왼쪽에 붙이면 짧은 제목 옆으로 빈 공간이 크게
-          남아 화면 전체가 한쪽으로 쏠려 보입니다. 설명은 폭을 좁혀 두 줄로 균형 있게.
+          머리말은 아래 안내 문단과 같은 왼쪽 선에 맞춥니다. 설명은 폭을 좁히지 않고
+          카드 끝까지 쓰게 해, 왼쪽에 짧은 줄만 몰려 보이지 않게 합니다.
         */}
-        <div className="bg-gradient-to-br from-brand via-[#24589f] to-accent px-6 py-10 text-center text-white sm:px-9 sm:py-12">
+        <div className="bg-gradient-to-br from-brand via-[#24589f] to-accent px-6 py-10 text-white sm:px-9 sm:py-12">
           <p className="text-xs font-semibold tracking-wider text-white/70">상시 접수</p>
           <h1 className="mt-2 text-balance text-[26px] font-bold leading-tight sm:text-[30px]">
             {PROGRAM.name}
           </h1>
-          <p className="mx-auto mt-4 max-w-xl text-balance text-[15px] leading-[1.8] text-white/85">
+          <p className="mt-4 text-pretty text-[15px] leading-[1.8] text-white/85">
             회사 발전을 위한 제안을 상시 접수합니다. 기획운영팀이 매월 취합해 대표님께 보고하며,
             검토 결과는 제안자께 회신드립니다.
           </p>

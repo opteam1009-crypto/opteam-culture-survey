@@ -36,7 +36,7 @@ export default async function SuggestionDetailPage({ params }: { params: { id: s
         <Link href="/dashboard/suggestions" className="btn-ghost px-3 py-1.5 text-xs">
           ← 제안 목록
         </Link>
-        {/* 저장 파일명: 성장제안_기획운영팀_홍길동 */}
+        {/* 저장 파일명: 업무제도개선_기획운영팀_홍길동 */}
         <PrintButton filename={`${PROGRAM.file}_${item.department_name}_${item.proposer_name}`} />
       </div>
 

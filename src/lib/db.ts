@@ -210,7 +210,7 @@ async function runMigrations(): Promise<void> {
     alter table interview_schedules add column if not exists reminder_sent_at timestamptz;
 
     /*
-      성장 제안제도. 월별 정기설문을 대신하는 상시 창구입니다.
+      업무·제도 개선 창구(구 성장 제안제도). 월별 정기설문을 대신하는 상시 창구입니다.
       설문(survey_responses)과 섞지 않고 따로 둡니다. 점수도 회차도 문항도 없고,
       제출 뒤에 상태가 바뀌며 회신까지 남아야 하는, 성격이 다른 자료입니다.
       period 는 「접수월」입니다. 기획운영팀이 월 1회 취합해 보고하기 때문에

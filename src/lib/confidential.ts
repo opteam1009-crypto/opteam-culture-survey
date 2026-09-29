@@ -80,7 +80,7 @@ export const CONFIDENTIAL_CHANNELS: Record<ConfidentialKind, ConfidentialChannel
     title: "직장 내 괴롭힘 신고",
     receiver: "직장 내 괴롭힘 신고 담당자",
     intro:
-      "직접 겪으셨거나 목격하신 일 모두 신고하실 수 있습니다. 신고가 접수되면 회사는 지체 없이 사실관계를 확인하며, 신고를 이유로 불리한 처우를 하는 것은 법으로 금지되어 있습니다.",
+      "직접 겪으셨거나 목격하신 일 모두 신고하실 수 있습니다. 신고가 접수되면 회사는 즉시 사실관계를 확인하며, 신고를 이유로 불리한 처우를 하는 것은 법으로 금지되어 있습니다.",
     recipientsEnv: "HARASSMENT_EMAILS",
     fields: [
       {

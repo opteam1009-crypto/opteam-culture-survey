@@ -19,7 +19,7 @@ const HEAD: Record<ConfidentialKind, { title: string; desc: string }> = {
   },
   harassment: {
     title: "직장 내 괴롭힘 신고",
-    desc: "접수된 직장 내 괴롭힘 신고입니다. 접수되면 지체 없이 사실관계를 확인해야 하며, 신고자의 신원과 내용은 조사에 필요한 범위에서만 다룹니다.",
+    desc: "접수된 직장 내 괴롭힘 신고입니다. 접수 즉시 사실관계를 확인해야 하며, 신고자의 신원과 내용은 조사에 필요한 범위에서만 다룹니다.",
   },
 };
 
