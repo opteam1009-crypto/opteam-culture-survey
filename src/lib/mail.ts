@@ -268,6 +268,77 @@ async function deliver(
   await logNotification(q, responseId, to.join(", "), subject, text, status, error);
 }
 
+/**
+ * 전담 창구(고충·괴롭힘) 메일.
+ *
+ * 다른 알림과 달리 notification_log 에 남기지 않습니다. 그 기록은 대시보드
+ * 설정 화면에서 대표·인사가 제목·본문까지 볼 수 있어서입니다. 보낸 결과는
+ * 호출한 쪽이 confidential_reports 에 적습니다.
+ *
+ * 제목에 이름을 넣지 않습니다. 메일함 목록이나 알림 미리보기는 옆 사람에게도
+ * 보이기 쉽습니다.
+ */
+export async function sendConfidentialReport(input: {
+  to: string[];
+  tag: string;
+  receiver: string;
+  name: string;
+  department: string;
+  contact: string;
+  sections: { label: string; value: string }[];
+}): Promise<{ status: "sent" | "failed"; error: string | null }> {
+  const subject = `[${input.tag}] 새 접수가 있습니다`;
+
+  const lines = [
+    `받는 분: ${input.receiver}`,
+    "",
+    `접수자: ${input.department} ${input.name}`,
+    `연락처: ${input.contact}`,
+  ];
+  for (const s of input.sections) {
+    if (!s.value) continue;
+    lines.push("", `[${s.label}]`, s.value);
+  }
+  lines.push("", "이 메일은 지정된 담당자에게만 발송되었습니다. 전달·공유 시 주의해 주세요.");
+  const text = lines.join("\n");
+
+  const html = `
+    <div style="font-family:-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;max-width:640px">
+      <p style="margin:0 0 4px;color:#6b6a67;font-size:12px">${escapeHtml(input.receiver)} 앞</p>
+      <h2 style="margin:0 0 14px;font-size:18px">${escapeHtml(input.tag)}</h2>
+      <table style="border-collapse:collapse;width:100%;font-size:14px">
+        ${row("접수자", escapeHtml(`${input.department} ${input.name}`))}
+        ${row("연락처", escapeHtml(input.contact))}
+      </table>
+      ${input.sections
+        .filter((s) => s.value)
+        .map(
+          (s) => `
+        <div style="margin-top:14px;padding-top:12px;border-top:1px solid #eceae6">
+          <div style="color:#6b6a67;font-size:12px;font-weight:700;margin-bottom:4px">${escapeHtml(s.label)}</div>
+          <div style="white-space:pre-wrap;line-height:1.7;font-size:14px">${escapeHtml(s.value)}</div>
+        </div>`,
+        )
+        .join("")}
+      <p style="margin:20px 0 0;color:#93441f;font-size:12px">
+        이 메일은 지정된 담당자에게만 발송되었습니다. 전달·공유 시 주의해 주세요.
+      </p>
+    </div>`;
+
+  try {
+    if (process.env.RESEND_API_KEY) {
+      await sendViaResend(input.to, subject, text, html);
+    } else if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+      await sendViaSmtp(input.to, subject, text, html);
+    } else {
+      return { status: "failed", error: "발송 수단이 설정되지 않았습니다." };
+    }
+    return { status: "sent", error: null };
+  } catch (err) {
+    return { status: "failed", error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
 export interface InterviewMailInput {
   name: string;
   department: string;

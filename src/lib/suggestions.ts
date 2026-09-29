@@ -24,33 +24,6 @@ export const PROGRAM = {
   file: "성장제안",
 };
 
-/**
- * 전담 창구. 개인적인 어려움을 안내할 곳입니다.
- * href 를 채우면 안내 줄을 눌렀을 때 그 주소로 이동하고, 비워두면 안내만 보입니다.
- */
-export const CHANNELS: {
-  key: string;
-  label: string;
-  to: string;
-  note: string;
-  href: string;
-}[] = [
-  {
-    key: "grievance",
-    label: "개인 고충",
-    to: "노사협의회 고충처리위원",
-    note: "10일 이내에 처리 결과를 알려드립니다",
-    href: "",
-  },
-  {
-    key: "harassment",
-    label: "직장 내 괴롭힘",
-    to: "직장 내 괴롭힘 신고 창구",
-    note: "신고하시면 회사가 지체 없이 확인합니다",
-    href: "",
-  },
-];
-
 /** 한 주제의 작성 예시. 제목과 1장 양식 세 칸에 회색 글씨로 보입니다. */
 export interface SuggestionExample {
   title: string;

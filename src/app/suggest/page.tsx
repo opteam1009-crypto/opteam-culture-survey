@@ -1,5 +1,25 @@
 import { loadActiveDepartments } from "@/lib/queries";
-import { CHANNELS, PROGRAM } from "@/lib/suggestions";
+import { PROGRAM } from "@/lib/suggestions";
+import { CONFIDENTIAL_CHANNELS, confidentialReady } from "@/lib/confidential";
+
+/**
+ * 제안 화면에서 안내하는 전담 창구.
+ * 받는 사람이 등록된 창구만 링크가 됩니다. 아직이면 안내 문구만 보입니다.
+ */
+const ROUTES = [
+  {
+    kind: "grievance" as const,
+    label: "개인 고충",
+    to: "노사협의회 고충처리위원",
+    note: "10일 이내에 처리 결과를 알려드립니다",
+  },
+  {
+    kind: "harassment" as const,
+    label: "직장 내 괴롭힘",
+    to: "직장 내 괴롭힘 신고 창구",
+    note: "신고하시면 회사가 지체 없이 확인합니다",
+  },
+];
 import SuggestionForm from "@/components/SuggestionForm";
 
 export const dynamic = "force-dynamic";
@@ -55,8 +75,14 @@ export default async function SuggestPage() {
             <br className="hidden sm:inline" /> 전담 창구에서 더 세심하고 빠르게 도와드릴 수
             있습니다.
             <span className="mt-3.5 block space-y-2">
-              {CHANNELS.map((c) => (
-                <Route key={c.key} label={c.label} to={c.to} note={c.note} href={c.href} />
+              {ROUTES.map((r) => (
+                <Route
+                  key={r.kind}
+                  label={r.label}
+                  to={r.to}
+                  note={r.note}
+                  href={confidentialReady(r.kind) ? CONFIDENTIAL_CHANNELS[r.kind].path : ""}
+                />
               ))}
             </span>
           </Notice>

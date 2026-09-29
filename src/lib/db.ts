@@ -239,6 +239,25 @@ async function runMigrations(): Promise<void> {
     create index if not exists suggestions_status_idx on suggestions (status);
     create index if not exists suggestions_submitted_idx on suggestions (submitted_at desc);
 
+    /*
+      전담 창구(개인 고충·괴롭힘 신고). 지정 담당자에게 메일로만 보내고,
+      메일이 실패했을 때 신고가 사라지지 않도록 여기에 남깁니다.
+      이 테이블은 어떤 화면에서도 읽지 않습니다. 대표·인사 대시보드에 나오면
+      안 되는 자료입니다(신고 대상이 그분들일 수 있습니다).
+    */
+    create table if not exists confidential_reports (
+      id              uuid primary key default gen_random_uuid(),
+      kind            text not null check (kind in ('grievance','harassment')),
+      submitted_at    timestamptz not null default now(),
+      reporter_name   text not null,
+      department_name text not null,
+      contact         text not null,
+      body            jsonb not null,
+      delivery_status text not null default 'pending',
+      delivered_at    timestamptz,
+      delivery_error  text
+    );
+
     create table if not exists notification_log (
       id          bigserial primary key,
       response_id uuid references survey_responses(id) on delete cascade,
