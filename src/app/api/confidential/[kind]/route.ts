@@ -4,7 +4,7 @@ import {
   CONFIDENTIAL_CHANNELS,
   MAX_CONTACT,
   MAX_FIELD,
-  confidentialReady,
+  confidentialMailReady,
   confidentialRecipients,
   isConfidentialKind,
 } from "@/lib/confidential";
@@ -13,22 +13,14 @@ import { sendConfidentialReport } from "@/lib/mail";
 export const dynamic = "force-dynamic";
 
 /**
- * 전담 창구 접수(공개). 지정 담당자에게 메일로만 보냅니다.
- * 어떤 화면에서도 읽지 않고, notification_log 에도 남기지 않습니다.
+ * 전담 창구 접수(공개). 대시보드 「고충·신고」에 남기고, 담당자 메일이
+ * 등록되어 있으면 메일로도 보냅니다. notification_log 에는 남기지 않습니다.
  */
 export async function POST(request: Request, { params }: { params: { kind: string } }) {
   if (!isConfidentialKind(params.kind)) {
     return NextResponse.json({ error: "알 수 없는 창구입니다." }, { status: 404 });
   }
   const channel = CONFIDENTIAL_CHANNELS[params.kind];
-
-  // 받을 사람이 없으면 아예 받지 않습니다. 아무도 읽지 않는 곳에 쌓이면 안 됩니다.
-  if (!confidentialReady(channel.kind)) {
-    return NextResponse.json(
-      { error: "지금은 온라인 접수를 받을 수 없습니다. 담당자에게 직접 연락해 주세요." },
-      { status: 503 },
-    );
-  }
 
   let payload: Record<string, unknown>;
   try {
@@ -64,7 +56,7 @@ export async function POST(request: Request, { params }: { params: { kind: strin
     await ensureSchema();
     const q = sql();
 
-    // 먼저 남기고 보냅니다. 메일이 실패해도 신고가 사라지지 않게.
+    // 대시보드에서 읽는 것이 기본입니다. 메일은 등록되어 있을 때만 덧붙입니다.
     const inserted = (await q`
       insert into confidential_reports
         (kind, reporter_name, department_name, contact, body)
@@ -73,6 +65,11 @@ export async function POST(request: Request, { params }: { params: { kind: strin
       returning id
     `) as { id: string }[];
     const id = inserted[0].id;
+
+    if (!confidentialMailReady(channel.kind)) {
+      await q`update confidential_reports set delivery_status = 'skipped' where id = ${id}::uuid`;
+      return NextResponse.json({ ok: true });
+    }
 
     const result = await sendConfidentialReport({
       to: confidentialRecipients(channel.kind),
@@ -91,17 +88,10 @@ export async function POST(request: Request, { params }: { params: { kind: strin
              delivery_error  = ${result.error}
        where id = ${id}::uuid
     `;
-
     if (result.status !== "sent") {
-      // 내용은 로그에 남기지 않습니다. 어느 건이 실패했는지만 남깁니다.
+      // 접수는 이미 대시보드에 있으니 실패로 돌려보내지 않습니다.
+      // 내용은 로그에 남기지 않고 어느 건인지만 남깁니다.
       console.error(`[confidential:${channel.kind}] 메일 발송 실패 id=${id}`, result.error);
-      return NextResponse.json(
-        {
-          error:
-            "접수는 저장되었지만 담당자에게 전달하지 못했습니다. 번거로우시겠지만 담당자에게 직접 한 번 더 알려주세요.",
-        },
-        { status: 502 },
-      );
     }
 
     return NextResponse.json({ ok: true });

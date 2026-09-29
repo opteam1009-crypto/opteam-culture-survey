@@ -48,7 +48,7 @@ export const SUGGESTION_TOPICS: {
   {
     value: "process",
     label: "불필요한 업무·절차·비용",
-    hint: "안 해도 되는 일, 겹치는 절차, 줄일 수 있는 비용",
+    hint: "불필요하거나 중복되는 업무·절차, 절감 가능한 비용",
     example: {
       title: "소액 비품 구매 결재 단계 줄이기",
       situation:
@@ -60,7 +60,7 @@ export const SUGGESTION_TOPICS: {
   {
     value: "report",
     label: "비효율적인 보고·지시 체계",
-    hint: "보고가 겹치거나, 지시가 여러 갈래로 내려오는 것",
+    hint: "중복되는 보고, 일관되지 않은 지시 체계",
     example: {
       title: "주간보고 이중 작성 없애기",
       situation: "주간보고를 팀장·본부장에게 각각 따로 올리고 있어 같은 내용을 두 번 씁니다.",
@@ -71,7 +71,7 @@ export const SUGGESTION_TOPICS: {
   {
     value: "direction",
     label: "회사 방향",
-    hint: "우리가 어디로 가야 하는지에 대한 생각",
+    hint: "회사가 나아갈 방향과 전략에 대한 의견",
     example: {
       title: "분기별로 집중할 사업 하나 정하기",
       situation:
@@ -84,7 +84,7 @@ export const SUGGESTION_TOPICS: {
   {
     value: "revenue",
     label: "매출 증대",
-    hint: "새로운 수익, 기존 사업을 키우는 방법",
+    hint: "신규 수익원 발굴, 기존 사업 확대 방안",
     example: {
       title: "기존 고객 재구매 안내 보내기",
       situation: "한 번 구매한 고객에게 다시 연락하는 절차가 없어 재구매로 이어지는 경우가 적습니다.",
@@ -95,7 +95,7 @@ export const SUGGESTION_TOPICS: {
   {
     value: "etc",
     label: "그 밖의 개선 제안",
-    hint: "위에 딱 맞지 않는 개선 아이디어",
+    hint: "그 밖의 업무 환경·제도 개선 의견",
     example: {
       title: "신규 입사자 안내 자료 만들기",
       situation: "신규 입사자가 올 때마다 사수가 같은 내용을 처음부터 말로 설명하고 있습니다.",

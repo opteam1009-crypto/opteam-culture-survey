@@ -577,3 +577,29 @@ export async function loadSuggestionPeriods(): Promise<string[]> {
   `) as { period: string }[];
   return rows.map((r) => r.period);
 }
+
+// ── 고충·신고(전담 창구) ─────────────────────────────────────────────────
+
+import type { ConfidentialReport } from "./confidential";
+
+export async function loadReports(kind?: string): Promise<ConfidentialReport[]> {
+  await ensureSchema();
+  return (await sql()`
+    select id, kind, submitted_at, reporter_name, department_name, contact, body,
+           status, note, handled_by, updated_at, delivery_status
+      from confidential_reports
+     where (${kind ?? null}::text is null or kind = ${kind ?? null})
+     order by submitted_at desc
+  `) as ConfidentialReport[];
+}
+
+export async function loadReport(id: string): Promise<ConfidentialReport | null> {
+  await ensureSchema();
+  const rows = (await sql()`
+    select id, kind, submitted_at, reporter_name, department_name, contact, body,
+           status, note, handled_by, updated_at, delivery_status
+      from confidential_reports
+     where id = ${id}::uuid
+  `) as ConfidentialReport[];
+  return rows[0] ?? null;
+}

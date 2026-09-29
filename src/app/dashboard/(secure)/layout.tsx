@@ -11,6 +11,7 @@ const NAV = [
   { href: "/dashboard/responses", label: "응답 열람" },
   { href: "/dashboard/interviews", label: "면담 일정" },
   { href: "/dashboard/suggestions", label: PROGRAM.short },
+  { href: "/dashboard/reports", label: "고충·신고" },
   { href: "/dashboard/settings", label: "설정" },
 ];
 

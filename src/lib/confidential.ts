@@ -1,19 +1,16 @@
 /**
  * 전담 창구: 개인 고충(노사협의회 고충처리위원)과 직장 내 괴롭힘 신고.
  *
- * 제안제도와 가장 다른 점은 **누가 읽는가** 입니다.
+ * 접수 내용은 confidential_reports 에 남고 대시보드 「고충·신고」에서 처리합니다.
+ * 담당자 메일(GRIEVANCE_EMAILS / HARASSMENT_EMAILS)을 넣으면 같은 내용이
+ * 메일로도 갑니다. 메일이 없어도 접수는 받습니다.
  *
- * - 대표·인사 대시보드에는 어떤 형태로도 나오지 않습니다. 신고 대상이 대표나
- *   인사 담당자일 수 있고, 괴롭힘 조사에 관여한 사람은 알게 된 비밀을 누설하면
- *   안 됩니다(근로기준법 제76조의3 제7항).
- * - 지정한 담당자의 메일로만 보냅니다(GRIEVANCE_EMAILS / HARASSMENT_EMAILS).
- * - 설정 화면의 알림 기록(notification_log)에도 남기지 않습니다. 그 화면은
- *   대표·인사가 보고, 메일 본문까지 보여줍니다.
- * - 받을 사람이 등록되지 않았으면 접수 자체를 받지 않고, 제안 화면의 안내 줄도
- *   링크가 되지 않습니다. 아무도 읽지 않는 곳에 신고가 쌓이면 안 됩니다.
+ * 설정 화면의 알림 기록(notification_log)에는 남기지 않습니다. 그 화면은 메일
+ * 본문까지 보여주는데, 고충·신고는 전용 화면에서만 보는 게 맞습니다.
  *
- * 메일이 실패해도 신고가 사라지지 않도록 confidential_reports 테이블에 남깁니다.
- * 이 테이블은 어떤 화면에서도 읽지 않습니다.
+ * 직원에게 보이는 문구는 사실이어야 합니다. 누가 읽는지를 실제보다 좁게 적으면
+ * (「○○만 확인합니다」) 믿고 쓴 사람을 속이는 셈입니다. 열람 범위를 바꾸면
+ * 여기 문구도 함께 고쳐 주세요.
  */
 
 export type ConfidentialKind = "grievance" | "harassment";
@@ -35,14 +32,14 @@ export interface ConfidentialChannel {
   title: string;
   /** 누가 받는지. 화면에 그대로 보여줍니다. 누가 읽는지 알아야 안심하고 씁니다. */
   receiver: string;
-  /** 머리말 아래 안내 문단(문장 단위로 줄을 바꿉니다) */
-  intro: string[];
+  /** 머리말 아래 안내 문단 */
+  intro: string;
   /** 받는 사람 메일 주소를 담은 환경변수 */
   recipientsEnv: string;
   /** 본문 칸 */
   fields: ConfidentialField[];
-  /** 제출 뒤 안내(문장 단위) */
-  after: string[];
+  /** 제출 뒤 안내 */
+  after: string;
   /** 메일 제목 머리말 */
   mailTag: string;
 }
@@ -53,16 +50,14 @@ export const CONFIDENTIAL_CHANNELS: Record<ConfidentialKind, ConfidentialChannel
     path: "/grievance",
     title: "개인 고충 접수",
     receiver: "노사협의회 고충처리위원",
-    intro: [
-      "회사생활에서 겪는 어려움을 편하게 말씀해 주세요.",
-      "적어주신 내용은 고충처리위원만 확인하며, 10일 이내에 처리 결과를 알려드립니다.",
-    ],
+    intro:
+      "근무 중 겪고 계신 고충을 접수합니다. 담당자가 내용을 확인하고, 접수일로부터 10일 이내에 처리 결과를 알려드립니다.",
     recipientsEnv: "GRIEVANCE_EMAILS",
     fields: [
       {
         code: "what",
-        label: "어떤 어려움이 있으신가요?",
-        prompt: "상황을 편하게 적어주세요. 정리되지 않아도 괜찮습니다.",
+        label: "고충 내용",
+        prompt: "어떤 상황인지 적어주세요. 정리되지 않아도 괜찮습니다.",
         placeholder: "예) 업무 분장이 명확하지 않아 제가 맡은 일이 계속 늘어나고 있습니다.",
         required: true,
         rows: 6,
@@ -76,10 +71,7 @@ export const CONFIDENTIAL_CHANNELS: Record<ConfidentialKind, ConfidentialChannel
         rows: 3,
       },
     ],
-    after: [
-      "고충처리위원이 내용을 확인한 뒤 연락드립니다.",
-      "10일 이내에 처리 결과를 알려드립니다.",
-    ],
+    after: "담당자가 내용을 확인한 뒤 연락드리며, 접수일로부터 10일 이내에 처리 결과를 알려드립니다.",
     mailTag: "고충 접수",
   },
   harassment: {
@@ -87,11 +79,8 @@ export const CONFIDENTIAL_CHANNELS: Record<ConfidentialKind, ConfidentialChannel
     path: "/harassment",
     title: "직장 내 괴롭힘 신고",
     receiver: "직장 내 괴롭힘 신고 담당자",
-    intro: [
-      "직접 겪으셨거나 곁에서 보신 일 모두 신고하실 수 있습니다.",
-      "신고가 접수되면 회사는 지체 없이 사실관계를 확인합니다.",
-      "신고했다는 이유로 불리한 처우를 하는 것은 법으로 금지되어 있습니다.",
-    ],
+    intro:
+      "직접 겪으셨거나 목격하신 일 모두 신고하실 수 있습니다. 신고가 접수되면 회사는 지체 없이 사실관계를 확인하며, 신고를 이유로 불리한 처우를 하는 것은 법으로 금지되어 있습니다.",
     recipientsEnv: "HARASSMENT_EMAILS",
     fields: [
       {
@@ -127,10 +116,8 @@ export const CONFIDENTIAL_CHANNELS: Record<ConfidentialKind, ConfidentialChannel
         rows: 3,
       },
     ],
-    after: [
-      "신고 담당자가 내용을 확인한 뒤 연락드립니다.",
-      "회사는 지체 없이 사실관계를 확인하며, 신고하신 분의 신원과 내용은 조사에 필요한 범위에서만 다룹니다.",
-    ],
+    after:
+      "담당자가 내용을 확인한 뒤 연락드립니다. 신고하신 분의 신원과 내용은 조사와 처리에 필요한 범위에서만 다룹니다.",
     mailTag: "괴롭힘 신고",
   },
 };
@@ -150,14 +137,51 @@ export function confidentialRecipients(kind: ConfidentialKind): string[] {
 }
 
 /**
- * 이 창구를 열어도 되는지. 받는 사람이 있고, 메일을 보낼 수단이 있어야 합니다.
- * 둘 중 하나라도 없으면 신고가 아무에게도 닿지 않습니다.
+ * 담당자 메일로도 보낼 수 있는지. 받는 주소와 발송 수단이 모두 있어야 합니다.
+ * 없어도 접수는 받습니다(대시보드에 남습니다).
  */
-export function confidentialReady(kind: ConfidentialKind): boolean {
+export function confidentialMailReady(kind: ConfidentialKind): boolean {
   const canSend =
     Boolean(process.env.RESEND_API_KEY) ||
     Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
   return canSend && confidentialRecipients(kind).length > 0;
+}
+
+/** 처리 단계. */
+export const REPORT_STATUSES = [
+  { value: "received", label: "접수", tone: { bg: "#eef3fb", ink: "#1f4d8f" } },
+  { value: "handling", label: "처리중", tone: { bg: "#fdeee7", ink: "#93441f" } },
+  { value: "done", label: "처리 완료", tone: { bg: "#e7f6e7", ink: "#056b05" } },
+] as const;
+
+export const REPORT_STATUS_LABEL: Record<string, string> = Object.fromEntries(
+  REPORT_STATUSES.map((s) => [s.value, s.label]),
+);
+
+export const VALID_REPORT_STATUSES: ReadonlySet<string> = new Set<string>(
+  REPORT_STATUSES.map((s) => s.value),
+);
+
+export function reportTone(status: string): { bg: string; ink: string } {
+  return REPORT_STATUSES.find((s) => s.value === status)?.tone ?? { bg: "#f0efec", ink: "#52514e" };
+}
+
+/** 개인 고충은 들은 날부터 10일 이내에 결과를 알려야 합니다(근로자참여법). */
+export const GRIEVANCE_DEADLINE_DAYS = 10;
+
+export interface ConfidentialReport {
+  id: string;
+  kind: ConfidentialKind;
+  submitted_at: string;
+  reporter_name: string;
+  department_name: string;
+  contact: string;
+  body: Record<string, string>;
+  status: string;
+  note: string;
+  handled_by: string;
+  updated_at: string | null;
+  delivery_status: string;
 }
 
 export const MAX_CONTACT = 80;

@@ -240,10 +240,9 @@ async function runMigrations(): Promise<void> {
     create index if not exists suggestions_submitted_idx on suggestions (submitted_at desc);
 
     /*
-      전담 창구(개인 고충·괴롭힘 신고). 지정 담당자에게 메일로만 보내고,
-      메일이 실패했을 때 신고가 사라지지 않도록 여기에 남깁니다.
-      이 테이블은 어떤 화면에서도 읽지 않습니다. 대표·인사 대시보드에 나오면
-      안 되는 자료입니다(신고 대상이 그분들일 수 있습니다).
+      전담 창구(개인 고충·직장 내 괴롭힘 신고). 대시보드 「고충·신고」에서
+      처리합니다. 담당자 메일(GRIEVANCE_EMAILS / HARASSMENT_EMAILS)을 넣으면
+      같은 내용이 메일로도 갑니다. 설문·제안과 섞지 않고 따로 둡니다.
     */
     create table if not exists confidential_reports (
       id              uuid primary key default gen_random_uuid(),
@@ -257,6 +256,13 @@ async function runMigrations(): Promise<void> {
       delivered_at    timestamptz,
       delivery_error  text
     );
+
+    alter table confidential_reports add column if not exists status text not null default 'received';
+    alter table confidential_reports add column if not exists note text not null default '';
+    alter table confidential_reports add column if not exists handled_by text not null default '';
+    alter table confidential_reports add column if not exists updated_at timestamptz;
+    create index if not exists confidential_reports_submitted_idx
+      on confidential_reports (submitted_at desc);
 
     create table if not exists notification_log (
       id          bigserial primary key,

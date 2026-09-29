@@ -82,7 +82,7 @@ export default function SuggestionForm({ departments }: { departments: Departmen
       <section className="card p-5 sm:p-7">
         <h2 className="text-[15px] font-bold">제안자</h2>
         <p className="mt-1 text-[13px] leading-relaxed text-muted">
-          검토 결과를 직접 알려드릴 때 사용합니다.
+          검토 결과를 회신드릴 때 사용합니다.
         </p>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <label className="text-sm">
@@ -197,13 +197,13 @@ export default function SuggestionForm({ departments }: { departments: Departmen
       <div className="card flex flex-wrap items-center justify-between gap-3 p-5">
         <p className="text-[13px] leading-relaxed text-muted">
           {ready ? (
-            <>보내주시면 기획운영팀이 확인하고 결과를 알려드립니다.</>
+            <>제출하신 제안은 기획운영팀이 확인 후 검토 결과를 회신드립니다.</>
           ) : (
-            <>모든 칸을 채우면 제출할 수 있습니다.</>
+            <>모든 항목을 입력하시면 제출할 수 있습니다.</>
           )}
         </p>
         <button type="submit" className="btn-primary px-6 py-2.5 text-sm" disabled={!ready || busy}>
-          {busy ? "보내는 중…" : "제안 보내기"}
+          {busy ? "제출 중…" : "제안 제출"}
         </button>
       </div>
     </form>

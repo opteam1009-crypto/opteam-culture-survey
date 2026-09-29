@@ -7,13 +7,12 @@ import type { ConfidentialField, ConfidentialKind } from "@/lib/confidential";
 interface Props {
   kind: ConfidentialKind;
   path: string;
-  receiver: string;
   fields: ConfidentialField[];
   departments: string[];
 }
 
-/** 전담 창구 접수 폼. 무엇을 누가 받는지 제출 버튼 바로 위에서 한 번 더 알려줍니다. */
-export default function ConfidentialForm({ kind, path, receiver, fields, departments }: Props) {
+/** 전담 창구 접수 폼. */
+export default function ConfidentialForm({ kind, path, fields, departments }: Props) {
   const router = useRouter();
   const [name, setName] = useState("");
   const [department, setDepartment] = useState("");
@@ -62,7 +61,7 @@ export default function ConfidentialForm({ kind, path, receiver, fields, departm
       <section className="card p-5 sm:p-7">
         <h2 className="text-[15px] font-bold">접수하시는 분</h2>
         <p className="mt-1 text-pretty text-[13px] leading-relaxed text-muted">
-          결과를 알려드리고, 필요하면 따로 이야기를 나누기 위해 여쭙니다.
+          처리 결과를 알려드리고, 필요하면 따로 말씀을 나누기 위해 여쭙니다.
         </p>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <label className="text-sm">
@@ -130,7 +129,7 @@ export default function ConfidentialForm({ kind, path, receiver, fields, departm
 
       <div className="card flex flex-wrap items-center justify-between gap-3 p-5">
         <p className="text-pretty text-[13px] leading-relaxed text-muted">
-          적어주신 내용은 <b className="text-ink">{receiver}</b>에게만 전달됩니다.
+          적어주신 내용은 조사와 처리에 필요한 범위에서만 다룹니다.
         </p>
         <button type="submit" className="btn-primary px-6 py-2.5 text-sm" disabled={!ready || busy}>
           {busy ? "보내는 중…" : "접수하기"}
