@@ -4,6 +4,7 @@ import { readSession } from "@/lib/auth";
 import { formatDateTime, formatPeriod } from "@/lib/period";
 import { loadSuggestionPeriods, loadSuggestions } from "@/lib/queries";
 import {
+  PROGRAM,
   STATUS_LABEL,
   SUGGESTION_STATUSES,
   TOPIC_LABEL,
@@ -44,7 +45,7 @@ export default async function SuggestionsPage({
     <div className="space-y-5">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold">성장 제안</h1>
+          <h1 className="text-xl font-bold">{PROGRAM.short}</h1>
           <p className="mt-1 text-sm text-muted">
             {period ? formatPeriod(period) : "전체 기간"}에 접수된 {all.length}건입니다.
           </p>

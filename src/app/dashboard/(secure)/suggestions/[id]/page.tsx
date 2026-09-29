@@ -3,7 +3,13 @@ import { notFound, redirect } from "next/navigation";
 import { readSession } from "@/lib/auth";
 import { formatDateTime, formatPeriod } from "@/lib/period";
 import { loadSuggestion } from "@/lib/queries";
-import { STATUS_LABEL, SUGGESTION_FIELDS, TOPIC_LABEL, statusTone } from "@/lib/suggestions";
+import {
+  PROGRAM,
+  STATUS_LABEL,
+  SUGGESTION_FIELDS,
+  TOPIC_LABEL,
+  statusTone,
+} from "@/lib/suggestions";
 import SuggestionStatusControls from "@/components/SuggestionStatusControls";
 import PrintButton from "@/components/PrintButton";
 
@@ -31,7 +37,7 @@ export default async function SuggestionDetailPage({ params }: { params: { id: s
           ← 제안 목록
         </Link>
         {/* 저장 파일명: 성장제안_기획운영팀_홍길동 */}
-        <PrintButton filename={`성장제안_${item.department_name}_${item.proposer_name}`} />
+        <PrintButton filename={`${PROGRAM.file}_${item.department_name}_${item.proposer_name}`} />
       </div>
 
       <article className="card p-5 sm:p-7">

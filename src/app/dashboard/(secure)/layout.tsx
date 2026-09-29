@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ROLE_LABEL, readSession } from "@/lib/auth";
 import LogoutButton from "@/components/LogoutButton";
+import { PROGRAM } from "@/lib/suggestions";
 
 export const dynamic = "force-dynamic";
 
@@ -9,7 +10,7 @@ const NAV = [
   { href: "/dashboard", label: "현황" },
   { href: "/dashboard/responses", label: "응답 열람" },
   { href: "/dashboard/interviews", label: "면담 일정" },
-  { href: "/dashboard/suggestions", label: "성장 제안" },
+  { href: "/dashboard/suggestions", label: PROGRAM.short },
   { href: "/dashboard/settings", label: "설정" },
 ];
 

@@ -178,9 +178,9 @@ export interface SuggestionMailInput {
  * 며칠씩 묵히게 되므로, 내용을 그대로 담아 메일에서 바로 판단할 수 있게 합니다.
  */
 export async function sendSuggestionNotification(input: SuggestionMailInput): Promise<void> {
-  const { TOPIC_LABEL } = await import("./suggestions");
+  const { PROGRAM, TOPIC_LABEL } = await import("./suggestions");
   const topic = TOPIC_LABEL[input.topic] ?? input.topic;
-  const subject = `[성장 제안] ${input.department} ${input.name} — ${input.title}`;
+  const subject = `[${PROGRAM.short}] ${input.department} ${input.name} — ${input.title}`;
 
   const text = [
     `제안자: ${input.department} ${input.name}`,
