@@ -56,13 +56,13 @@ export default async function SecureLayout({ children }: { children: React.React
             <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3">
               {/* 설문과 제안이 당분간 함께 돕니다. 둘 다 열어볼 수 있어야 합니다. */}
               <Link
-                href="/"
+                href="/survey"
                 className="hidden text-xs text-muted transition hover:text-ink lg:inline"
               >
                 설문 화면
               </Link>
               <Link
-                href="/suggest"
+                href="/"
                 className="hidden text-xs text-muted transition hover:text-ink lg:inline"
               >
                 제안 화면
@@ -79,13 +79,13 @@ export default async function SecureLayout({ children }: { children: React.React
             <DashboardNav groups={NAV} />
             <span aria-hidden className="mx-1.5 h-4 w-px shrink-0 bg-line" />
             <Link
-              href="/"
+              href="/survey"
               className="shrink-0 rounded-md px-2.5 py-1.5 text-sm text-muted transition hover:bg-gray-50 hover:text-ink"
             >
               설문 화면
             </Link>
             <Link
-              href="/suggest"
+              href="/"
               className="shrink-0 rounded-md px-2.5 py-1.5 text-sm text-muted transition hover:bg-gray-50 hover:text-ink"
             >
               제안 화면

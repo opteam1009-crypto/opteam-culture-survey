@@ -34,7 +34,7 @@ export default function ThanksPage({
         </div>
       </div>
 
-      <Link href="/" className="mt-5 text-xs text-muted transition hover:text-ink">
+      <Link href="/survey" className="mt-5 text-xs text-muted transition hover:text-ink">
         처음으로
       </Link>
     </main>

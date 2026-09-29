@@ -15,7 +15,7 @@ export default async function ConfidentialPage({ kind }: { kind: ConfidentialKin
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-8 sm:px-5 sm:py-12">
-      <Link href="/suggest" className="text-xs text-muted transition hover:text-ink">
+      <Link href="/" className="text-xs text-muted transition hover:text-ink">
         ← 제안 화면으로
       </Link>
 

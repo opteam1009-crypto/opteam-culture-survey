@@ -50,7 +50,7 @@ export default async function SuggestionsPage({
             {period ? formatPeriod(period) : "전체 기간"}에 접수된 {all.length}건입니다.
           </p>
         </div>
-        <Link href="/suggest" className="btn-ghost px-3 py-1.5 text-xs" target="_blank">
+        <Link href="/" className="btn-ghost px-3 py-1.5 text-xs" target="_blank">
           접수 화면 열기 ↗
         </Link>
       </header>

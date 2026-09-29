@@ -23,7 +23,7 @@ export default function SuggestThanksPage() {
         </div>
       </div>
 
-      <Link href="/suggest" className="mt-5 text-xs text-muted transition hover:text-ink">
+      <Link href="/" className="mt-5 text-xs text-muted transition hover:text-ink">
         새 제안 작성
       </Link>
     </main>
