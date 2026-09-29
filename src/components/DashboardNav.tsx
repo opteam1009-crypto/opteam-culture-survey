@@ -6,6 +6,8 @@ import { usePathname } from "next/navigation";
 export interface NavItem {
   href: string;
   label: string;
+  /** 이 메뉴에 불을 켤 다른 주소들(하위 화면). */
+  match?: string[];
 }
 
 /**
@@ -14,8 +16,9 @@ export interface NavItem {
  */
 export default function DashboardNav({ groups }: { groups: NavItem[][] }) {
   const pathname = usePathname();
-  const isActive = (href: string) =>
-    href === "/dashboard" ? pathname === "/dashboard" : pathname.startsWith(href);
+  const isActive = (item: NavItem) =>
+    (item.href === "/dashboard" ? pathname === "/dashboard" : pathname.startsWith(item.href)) ||
+    (item.match ?? []).some((m) => pathname.startsWith(m));
 
   return (
     <>
@@ -23,7 +26,7 @@ export default function DashboardNav({ groups }: { groups: NavItem[][] }) {
         <span key={gi} className="flex shrink-0 items-center gap-1">
           {gi > 0 && <span aria-hidden className="mx-1.5 h-4 w-px shrink-0 bg-line" />}
           {group.map((item) => {
-            const active = isActive(item.href);
+            const active = isActive(item);
             return (
               <Link
                 key={item.href}

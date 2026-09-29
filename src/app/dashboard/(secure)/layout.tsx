@@ -8,14 +8,17 @@ import { PROGRAM } from "@/lib/suggestions";
 export const dynamic = "force-dynamic";
 
 /**
- * 메뉴 묶음. 월별 설문과 상시 접수 창구는 성격이 달라 구분선으로 나눕니다.
- * 상시 접수는 창구마다 다루는 사람과 기한이 달라 탭을 따로 둡니다.
+ * 메뉴 묶음. 예전 월별 설문·면담과 상시 접수 창구는 성격이 달라 구분선으로 나눕니다.
+ * 예전 자료는 「(구) 정기면담」 하나로 묶고, 안에서 현황·응답 열람·면담 일정 탭으로
+ * 오갑니다. 상시 접수는 창구마다 다루는 사람과 기한이 달라 탭을 따로 둡니다.
  */
 const NAV: NavItem[][] = [
   [
-    { href: "/dashboard", label: "현황" },
-    { href: "/dashboard/responses", label: "응답 열람" },
-    { href: "/dashboard/interviews", label: "면담 일정" },
+    {
+      href: "/dashboard",
+      label: "(구) 정기면담",
+      match: ["/dashboard/responses", "/dashboard/interviews"],
+    },
   ],
   [
     { href: "/dashboard/suggestions", label: PROGRAM.short },
