@@ -8,22 +8,22 @@ import { PROGRAM } from "@/lib/suggestions";
 export const dynamic = "force-dynamic";
 
 /**
- * 메뉴 묶음. 예전 월별 설문·면담과 상시 접수 창구는 성격이 달라 구분선으로 나눕니다.
- * 예전 자료는 「(구) 정기면담」 하나로 묶고, 안에서 현황·응답 열람·면담 일정 탭으로
- * 오갑니다. 상시 접수는 창구마다 다루는 사람과 기한이 달라 탭을 따로 둡니다.
+ * 메뉴 묶음. 지금 운영하는 상시 접수 창구를 앞에, 예전 월별 설문·면담은 뒤에 둡니다.
+ * 상시 접수는 창구마다 다루는 사람과 기한이 달라 탭을 따로 두고, 예전 자료는
+ * 「(구) 정기면담」 하나로 묶어 안에서 현황·응답 열람·면담 일정 탭으로 오갑니다.
  */
 const NAV: NavItem[][] = [
-  [
-    {
-      href: "/dashboard",
-      label: "(구) 정기면담",
-      match: ["/dashboard/responses", "/dashboard/interviews"],
-    },
-  ],
   [
     { href: "/dashboard/suggestions", label: PROGRAM.short },
     { href: "/dashboard/harassment", label: "괴롭힘 신고" },
     { href: "/dashboard/grievance", label: "노사 고충" },
+  ],
+  [
+    {
+      href: "/dashboard/overview",
+      label: "(구) 정기면담",
+      match: ["/dashboard/responses", "/dashboard/interviews"],
+    },
   ],
   [{ href: "/dashboard/settings", label: "설정" }],
 ];
@@ -46,7 +46,7 @@ export default async function SecureLayout({ children }: { children: React.React
         */}
         <div className="mx-auto max-w-6xl px-4 py-2.5 sm:px-5 sm:py-3.5">
           <div className="flex items-center gap-3 sm:gap-6">
-            <Link href="/dashboard" className="shrink-0 text-sm font-bold">
+            <Link href="/dashboard/suggestions" className="shrink-0 text-sm font-bold">
               사내 진단 대시보드
             </Link>
             {/* 메뉴가 일곱 개라 넓은 화면(1024px~)에서만 한 줄에 둡니다. */}

@@ -116,16 +116,23 @@ export default function SuggestionForm({ departments }: { departments: Departmen
       {/* ── 주제 ───────────────────────────────────────────── */}
       <section className="card p-5 sm:p-7" ref={topicRef}>
         <h2 className="text-[15px] font-bold">어떤 제안인가요?</h2>
-        <div className="mt-4 grid gap-2.5 sm:grid-cols-2">
+        {/*
+          카드 다섯 장을 두 줄로 놓으면 마지막 한 장이 혼자 남고, 칸마다 테두리가
+          있어 무겁습니다. 한 덩어리 목록에 동그란 선택 표시를 두고, 고른 줄만
+          옅게 칠합니다.
+        */}
+        <div
+          role="radiogroup"
+          aria-label="제안 주제"
+          className="mt-4 divide-y divide-line overflow-hidden rounded-xl border border-line"
+        >
           {SUGGESTION_TOPICS.map((option) => {
             const active = topic === option.value;
             return (
               <label
                 key={option.value}
-                className={`cursor-pointer rounded-xl border px-4 py-3.5 transition ${
-                  active
-                    ? "border-brand bg-brandSoft ring-4 ring-brand/10"
-                    : "border-line bg-white hover:border-brand/35 hover:bg-brandTint"
+                className={`flex cursor-pointer items-center gap-3.5 px-4 py-3 transition ${
+                  active ? "bg-brandTint" : "bg-white hover:bg-gray-50"
                 }`}
               >
                 <input
@@ -137,12 +144,28 @@ export default function SuggestionForm({ departments }: { departments: Departmen
                   onChange={() => setTopic(option.value)}
                 />
                 <span
-                  className={`block text-sm font-bold ${active ? "text-brand" : "text-ink"}`}
+                  aria-hidden
+                  className={`flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border-[1.5px] transition ${
+                    active ? "border-brand" : "border-gray-300"
+                  }`}
                 >
-                  {option.label}
+                  <span
+                    className={`h-2 w-2 rounded-full bg-brand transition ${
+                      active ? "scale-100" : "scale-0"
+                    }`}
+                  />
                 </span>
-                <span className="mt-1 block text-[13px] leading-relaxed text-ink/65">
-                  {option.hint}
+                <span className="min-w-0 flex-1 sm:flex sm:items-baseline sm:gap-3">
+                  <span
+                    className={`block shrink-0 text-[14px] font-semibold ${
+                      active ? "text-brand" : "text-ink"
+                    }`}
+                  >
+                    {option.label}
+                  </span>
+                  <span className="mt-0.5 block text-pretty text-[12.5px] text-muted sm:mt-0">
+                    {option.hint}
+                  </span>
                 </span>
               </label>
             );

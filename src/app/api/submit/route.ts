@@ -193,8 +193,9 @@ export async function POST(request: Request) {
 
 function dashboardUrl(request: Request): string {
   const explicit = process.env.APP_BASE_URL;
-  if (explicit) return `${explicit.replace(/\/$/, "")}/dashboard`;
+  // 첫 화면은 업무·제도 개선 창구라, 설문 알림은 응답 목록으로 바로 보냅니다.
+  if (explicit) return `${explicit.replace(/\/$/, "")}/dashboard/responses`;
   const vercel = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL;
-  if (vercel) return `https://${vercel}/dashboard`;
-  return new URL("/dashboard", request.url).toString();
+  if (vercel) return `https://${vercel}/dashboard/responses`;
+  return new URL("/dashboard/responses", request.url).toString();
 }

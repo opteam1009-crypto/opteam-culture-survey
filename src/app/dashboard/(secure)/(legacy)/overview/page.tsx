@@ -96,7 +96,7 @@ export default async function DashboardPage({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2 sm:gap-3 print:hidden">
-          <PeriodSelect periods={[...knownPeriods].reverse()} current={period} basePath="/dashboard" />
+          <PeriodSelect periods={[...knownPeriods].reverse()} current={period} basePath="/dashboard/overview" />
           <a
             href={`/api/admin/export?period=${encodeURIComponent(period)}`}
             className="btn-ghost py-2 text-xs"

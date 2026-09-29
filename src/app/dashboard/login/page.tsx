@@ -11,7 +11,7 @@ export default async function LoginPage() {
   } catch {
     // SESSION_SECRET 미설정 등으로 세션을 읽을 수 없으면 로그인 화면을 그대로 보여줍니다.
   }
-  if (session) redirect("/dashboard");
+  if (session) redirect("/dashboard/suggestions");
 
   const configProblem = loginConfigProblem();
 

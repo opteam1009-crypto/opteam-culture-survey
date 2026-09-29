@@ -25,7 +25,7 @@ export default function LoginForm() {
         setBusy(false);
         return;
       }
-      router.replace("/dashboard");
+      router.replace("/dashboard/suggestions");
       router.refresh();
     } catch {
       setError("네트워크 오류가 발생했습니다.");
