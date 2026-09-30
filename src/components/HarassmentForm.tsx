@@ -129,8 +129,8 @@ export default function HarassmentForm({
       }}
     >
       <PartTitle title="직장 내 괴롭힘 신고서">
-        <span className="font-semibold text-brand">필수</span> 표시가 있는 칸만 적어도 접수할 수 있습니다.
-        나머지는 아시는 만큼 적어주세요.
+        <span className="font-semibold text-brand">필수</span> 표시 항목만 작성하셔도 접수할 수 있으며, 그 외
+        항목은 확인 가능한 범위 내에서 작성해 주시기 바랍니다.
       </PartTitle>
 
       <Section no={1} title="신고인 정보">
