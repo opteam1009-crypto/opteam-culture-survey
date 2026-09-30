@@ -49,8 +49,26 @@ body {
     @apply btn border border-line bg-white text-ink hover:border-gray-300 hover:bg-gray-50;
   }
   .field {
-    @apply w-full rounded-xl border border-line bg-white px-3.5 py-3 text-sm outline-none transition
+    @apply w-full rounded-xl border border-line bg-white px-3.5 py-3 text-[15px] outline-none transition
            placeholder:text-gray-400 focus:border-brand focus:ring-4 focus:ring-brand/10;
+  }
+  /*
+    접수 화면(제안·고충·괴롭힘) 글자. 설명이 12~13px 에 옅은 회색이면 가늘고 흐려
+    읽히지 않아서, 크기와 굵기를 한 단계 올려 한곳에서 맞춥니다.
+  */
+  .form-title {
+    @apply text-base font-bold text-ink sm:text-[17px];
+  }
+  .form-desc {
+    @apply text-[14px] leading-relaxed text-muted;
+    font-weight: 450;
+  }
+  .form-label {
+    @apply mb-1.5 block text-[13.5px] font-semibold text-ink/80;
+  }
+  .form-hint {
+    @apply -mt-0.5 mb-2 block text-[13.5px] leading-relaxed text-muted;
+    font-weight: 450;
   }
   .label {
     @apply mb-2 block text-sm font-semibold text-ink;

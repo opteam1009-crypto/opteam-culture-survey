@@ -355,7 +355,7 @@ export default function HarassmentForm({
         return (
           <section key={i} className="card p-5 sm:p-7">
             <div className="flex items-center justify-between gap-3">
-              <h2 className="text-[15px] font-bold">사건 {i + 1}</h2>
+              <h2 className="form-title">사건 {i + 1}</h2>
               {incidents.length > 1 && (
                 <RemoveButton onClick={() => setIncidents((all) => all.filter((_, j) => j !== i))} />
               )}
@@ -380,7 +380,7 @@ export default function HarassmentForm({
               hint="피신고인이 한 구체적인 행동 · 피신고인이 한 구체적인 발언 · 행위가 이루어진 방식 및 당시 상황 · 동일하거나 유사한 행위가 반복된 경우 발생 기간 및 횟수"
               className="mt-4"
             >
-              <span className="-mt-0.5 mb-1.5 block text-[12px] text-[#93441f]">
+              <span className="-mt-0.5 mb-2 block text-[13px] leading-relaxed text-[#93441f]">
                 ※ 가능한 한 실제 있었던 행동 및 발언을 구체적으로 작성해 주시기 바랍니다.
               </span>
               <Area value={inc.facts} onChange={(v) => set({ facts: v })} rows={5} />
@@ -412,8 +412,8 @@ export default function HarassmentForm({
         안내 문구만 두면 무슨 뜻인지 와닿지 않아서, 위에서 적은 내용을 그대로 비춰 보여줍니다.
       */}
       <section className="card p-5 sm:p-7">
-        <h2 className="text-[15px] font-bold">7~9항 · 신고서에 적은 내용 확인</h2>
-        <p className="mt-1 text-pretty text-[13px] leading-relaxed text-muted">
+        <h2 className="form-title">7~9항 · 신고서에 적은 내용 확인</h2>
+        <p className="form-desc mt-1 text-pretty">
           상세기술서 7~9항은 신고서 6·4·8항과 같은 질문이라 따로 적지 않습니다. 위에 적으신 내용을 여기서
           확인만 하시면 됩니다.
         </p>
@@ -443,7 +443,7 @@ export default function HarassmentForm({
       </section>
 
       <section className="card p-5 sm:p-7">
-        <h2 className="text-[15px] font-bold">10. 기타 조사 시 참고가 필요한 사항</h2>
+        <h2 className="form-title">10. 기타 조사 시 참고가 필요한 사항</h2>
         <div className="mt-3">
           <Area value={other} onChange={setOther} rows={3} />
         </div>
@@ -451,7 +451,7 @@ export default function HarassmentForm({
 
       <Section no={9} title="신고일 및 신고인 서명">
         <p className="text-sm">
-          <span className="text-xs font-semibold text-muted">신고일</span>
+          <span className="text-[13.5px] font-semibold text-ink/80">신고일</span>
           <span className="ml-3 font-semibold tabular-nums" suppressHydrationWarning>
             {today}
           </span>
@@ -467,7 +467,7 @@ export default function HarassmentForm({
             onChange={(e) => setPledge(e.target.checked)}
             className="mt-1 h-4 w-4 shrink-0 accent-[#1f4d8f]"
           />
-          <span className="text-pretty text-[14px] leading-relaxed text-ink">
+          <span className="text-pretty text-[15px] leading-relaxed text-ink">
             {PLEDGE_TEXT}
             <span className="ml-1.5 text-xs font-semibold text-brand">필수</span>
           </span>
@@ -480,7 +480,7 @@ export default function HarassmentForm({
             placeholder={name.trim() || "신고인 성명"}
           />
           {signature.trim() && name.trim() && !sameName(signature, name) && (
-            <span className="mt-1.5 block text-xs text-[#93441f]">1항에 적은 신고인 성명과 같게 적어주세요.</span>
+            <span className="mt-1.5 block text-[13px] text-[#93441f]">1항에 적은 신고인 성명과 같게 적어주세요.</span>
           )}
         </Field>
       </Section>
@@ -490,7 +490,7 @@ export default function HarassmentForm({
       )}
 
       <div className="card flex flex-wrap items-center justify-between gap-3 p-5">
-        <p className="min-w-0 flex-1 text-pretty text-[13px] leading-relaxed text-muted">
+        <p className="form-desc min-w-0 flex-1 text-pretty">
           {ready
             ? "적어주신 내용은 조사와 처리에 필요한 범위에서만 다룹니다."
             : `남은 필수 항목: ${missing.join(", ")}`}
@@ -512,8 +512,8 @@ export default function HarassmentForm({
 function PartTitle({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className="px-1 pt-2">
-      <h2 className="text-base font-bold text-ink">{title}</h2>
-      <p className="mt-1 text-pretty text-[13px] leading-relaxed text-muted">{children}</p>
+      <h2 className="text-[17px] font-bold text-ink sm:text-lg">{title}</h2>
+      <p className="form-desc mt-1 text-pretty">{children}</p>
     </div>
   );
 }
@@ -532,10 +532,10 @@ function Section({
   return (
     <section id={`report-${no}`} className="card scroll-mt-4 p-5 sm:p-7">
       <div className="flex items-baseline gap-2.5">
-        <span className="text-xs font-bold tabular-nums text-brand">{String(no).padStart(2, "0")}</span>
-        <h2 className="text-[15px] font-bold">{title}</h2>
+        <span className="text-[13px] font-bold tabular-nums text-brand">{String(no).padStart(2, "0")}</span>
+        <h2 className="form-title">{title}</h2>
       </div>
-      {hint && <p className="mt-1 text-pretty text-[13px] leading-relaxed text-muted">{hint}</p>}
+      {hint && <p className="form-desc mt-1 text-pretty">{hint}</p>}
       <div className="mt-4">{children}</div>
     </section>
   );
@@ -558,15 +558,15 @@ function Mirror({
   return (
     <div>
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-        <p className="text-sm font-bold text-ink">
+        <p className="text-[15px] font-bold text-ink">
           {no}. {title}
         </p>
-        <a href={`#report-${from}`} className="text-xs font-semibold text-brand hover:underline">
+        <a href={`#report-${from}`} className="text-[13px] font-semibold text-brand hover:underline">
           신고서 {from}항으로 이동 ↑
         </a>
       </div>
       <p
-        className={`mt-1.5 whitespace-pre-wrap break-words rounded-lg bg-gray-50 px-3.5 py-2.5 text-[13px] leading-relaxed ${
+        className={`mt-1.5 whitespace-pre-wrap break-words rounded-lg bg-gray-50 px-3.5 py-2.5 text-[14px] leading-relaxed ${
           children ? "text-ink/80" : "text-muted"
         }`}
       >
@@ -595,11 +595,11 @@ function Field({
 }) {
   return (
     <label className={`block text-sm ${className}`}>
-      <span className="mb-1.5 block text-xs font-semibold text-muted">
+      <span className="form-label">
         {label}
-        {required && <span className="ml-1.5 text-[11px] font-semibold text-brand">필수</span>}
+        {required && <span className="ml-1.5 text-xs font-semibold text-brand">필수</span>}
       </span>
-      {hint && <span className="-mt-0.5 mb-1.5 block text-pretty text-[12px] leading-relaxed text-muted/90">{hint}</span>}
+      {hint && <span className="form-hint text-pretty">{hint}</span>}
       {children}
     </label>
   );
@@ -662,7 +662,7 @@ function Checks({
         return (
           <label
             key={o.value}
-            className={`flex cursor-pointer items-center gap-2.5 rounded-lg border px-3.5 py-2.5 text-[14px] transition ${
+            className={`flex cursor-pointer items-center gap-2.5 rounded-lg border px-3.5 py-2.5 text-[15px] transition ${
               on ? "border-brand bg-brandSoft font-semibold text-brand" : "border-line bg-white text-ink hover:border-brand/40"
             }`}
           >
@@ -702,7 +702,7 @@ function Repeat<T>({
       {items.map((item, i) => (
         <div key={i} className="rounded-xl border border-line p-4">
           <div className="mb-3 flex items-center justify-between gap-3">
-            <p className="text-[13px] font-bold text-ink">{heading(i)}</p>
+            <p className="text-[15px] font-bold text-ink">{heading(i)}</p>
             <RemoveButton onClick={() => onRemove(i)} />
           </div>
           {render(item, i)}

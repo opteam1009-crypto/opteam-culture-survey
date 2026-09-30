@@ -66,15 +66,15 @@ export default function AttachmentPicker({
   return (
     <section className={embedded ? "mt-5 border-t border-line pt-5" : "card p-5 sm:p-7"}>
       <div className="flex items-baseline justify-between gap-3">
-        <h2 className={embedded ? "text-sm font-bold" : "text-[15px] font-bold"}>
+        <h2 className={embedded ? "text-[15px] font-bold" : "form-title"}>
           {title}
-          <span className="ml-1.5 text-xs font-normal text-muted">선택</span>
+          <span className="ml-1.5 text-[13px] font-normal text-muted">선택</span>
         </h2>
-        <span className="text-xs tabular-nums text-muted">
+        <span className="text-[13px] tabular-nums text-muted">
           {images.length} / {MAX_ATTACHMENTS}
         </span>
       </div>
-      <p className="mt-1 text-pretty text-[13px] leading-relaxed text-muted">{hint}</p>
+      <p className="form-desc mt-1 text-pretty">{hint}</p>
 
       <div className="mt-4 grid grid-cols-3 gap-2.5 sm:grid-cols-5">
         {images.map((img) => (

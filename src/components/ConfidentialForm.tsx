@@ -69,13 +69,13 @@ export default function ConfidentialForm({ kind, path, fields, departments }: Pr
       }}
     >
       <section className="card p-5 sm:p-7">
-        <h2 className="text-[15px] font-bold">접수하시는 분</h2>
-        <p className="mt-1 text-pretty text-[13px] leading-relaxed text-muted">
+        <h2 className="form-title">접수하시는 분</h2>
+        <p className="form-desc mt-1 text-pretty">
           처리 결과 안내와 추가 확인이 필요할 때 연락드리기 위해 받고 있습니다.
         </p>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <label className="text-sm">
-            <span className="mb-1.5 block text-xs font-semibold text-muted">성함</span>
+            <span className="form-label">성함</span>
             <input
               value={name}
               onChange={(e) => setName(e.target.value.slice(0, 40))}
@@ -84,7 +84,7 @@ export default function ConfidentialForm({ kind, path, fields, departments }: Pr
             />
           </label>
           <label className="text-sm">
-            <span className="mb-1.5 block text-xs font-semibold text-muted">소속</span>
+            <span className="form-label">소속</span>
             <select
               value={department}
               onChange={(e) => setDepartment(e.target.value)}
@@ -99,7 +99,7 @@ export default function ConfidentialForm({ kind, path, fields, departments }: Pr
             </select>
           </label>
           <label className="text-sm sm:col-span-2">
-            <span className="mb-1.5 block text-xs font-semibold text-muted">
+            <span className="form-label">
               연락받으실 곳 <span className="font-normal">— 이메일 또는 휴대폰</span>
             </span>
             <input
@@ -114,11 +114,11 @@ export default function ConfidentialForm({ kind, path, fields, departments }: Pr
 
       {fields.map((field) => (
         <section key={field.code} className="card p-5 sm:p-7">
-          <h2 className="text-[15px] font-bold">
+          <h2 className="form-title">
             {field.label}
-            {!field.required && <span className="ml-1.5 text-xs font-normal text-muted">선택</span>}
+            {!field.required && <span className="ml-1.5 text-[13px] font-normal text-muted">선택</span>}
           </h2>
-          <p className="mt-1 text-pretty text-[13px] leading-relaxed text-muted">{field.prompt}</p>
+          <p className="form-desc mt-1 text-pretty">{field.prompt}</p>
           <textarea
             value={body[field.code] ?? ""}
             onChange={(e) =>
@@ -146,7 +146,7 @@ export default function ConfidentialForm({ kind, path, fields, departments }: Pr
       )}
 
       <div className="card flex flex-wrap items-center justify-between gap-3 p-5">
-        <p className="text-pretty text-[13px] leading-relaxed text-muted">
+        <p className="form-desc text-pretty">
           적어주신 내용은 조사와 처리에 필요한 범위에서만 다룹니다.
         </p>
         <button type="submit" className="btn-primary px-6 py-2.5 text-sm" disabled={!ready || busy || preparing}>

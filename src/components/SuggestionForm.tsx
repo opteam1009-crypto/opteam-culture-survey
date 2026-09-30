@@ -85,13 +85,13 @@ export default function SuggestionForm({ departments }: { departments: Departmen
     >
       {/* ── 제안자 ─────────────────────────────────────────── */}
       <section className="card p-5 sm:p-7">
-        <h2 className="text-[15px] font-bold">제안자</h2>
-        <p className="mt-1 text-[13px] leading-relaxed text-muted">
+        <h2 className="form-title">제안자</h2>
+        <p className="form-desc mt-1">
           채택 시 개별 연락을 드릴 때 사용합니다.
         </p>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <label className="text-sm">
-            <span className="mb-1.5 block text-xs font-semibold text-muted">성명</span>
+            <span className="form-label">성명</span>
             <input
               value={name}
               onChange={(e) => setName(e.target.value.slice(0, MAX_NAME))}
@@ -101,7 +101,7 @@ export default function SuggestionForm({ departments }: { departments: Departmen
             />
           </label>
           <label className="text-sm">
-            <span className="mb-1.5 block text-xs font-semibold text-muted">소속 부서</span>
+            <span className="form-label">소속 부서</span>
             <select
               value={departmentId}
               onChange={(e) => setDepartmentId(e.target.value)}
@@ -120,8 +120,8 @@ export default function SuggestionForm({ departments }: { departments: Departmen
 
       {/* ── 주제 ───────────────────────────────────────────── */}
       <section className="card p-5 sm:p-7" ref={topicRef}>
-        <h2 className="text-[15px] font-bold">어떤 제안인가요?</h2>
-        <p className="mt-1 text-pretty text-[13px] leading-relaxed text-muted">
+        <h2 className="form-title">어떤 제안인가요?</h2>
+        <p className="form-desc mt-1 text-pretty">
           주제를 고르시면 아래 작성 예시가 그에 맞게 바뀝니다.
         </p>
         {/*
@@ -158,8 +158,8 @@ export default function SuggestionForm({ departments }: { departments: Departmen
                   {/* 좁은 화면에서 「줄일 수 / 있는 비용」처럼 구절 중간에서 끊기지 않도록
                       쉼표 단위로만 줄을 바꿉니다. */}
                   <span
-                    className={`mt-0.5 block text-[13px] leading-relaxed ${
-                      active ? "text-brand/75" : "text-ink/55"
+                    className={`mt-0.5 block text-[14px] leading-relaxed ${
+                      active ? "text-brand/80" : "text-muted"
                     }`}
                   >
                     {option.hint.split(", ").map((phrase, i, all) => (
@@ -197,7 +197,7 @@ export default function SuggestionForm({ departments }: { departments: Departmen
         </div>
 
         <label className="mt-4 block text-sm">
-          <span className="mb-1.5 block text-xs font-semibold text-muted">
+          <span className="form-label">
             한 줄 제목 <span className="font-normal">— 무엇에 대한 제안인지</span>
           </span>
           <input
@@ -215,10 +215,10 @@ export default function SuggestionForm({ departments }: { departments: Departmen
         return (
           <section key={field.code} className="card p-5 sm:p-7">
             <div className="flex items-baseline gap-2.5">
-              <span className="text-xs font-bold text-brand tabular-nums">0{index + 1}</span>
-              <h2 className="text-[15px] font-bold">{field.label}</h2>
+              <span className="text-[13px] font-bold text-brand tabular-nums">0{index + 1}</span>
+              <h2 className="form-title">{field.label}</h2>
             </div>
-            <p className="mt-1 text-[13px] leading-relaxed text-muted">{field.prompt}</p>
+            <p className="form-desc mt-1">{field.prompt}</p>
             <textarea
               value={value}
               onChange={(e) =>
@@ -228,7 +228,7 @@ export default function SuggestionForm({ departments }: { departments: Departmen
               className="field mt-3 resize-y leading-relaxed"
               placeholder={`예) ${example[field.code]}`}
             />
-            <p className="mt-1.5 text-right text-[11px] tabular-nums text-muted">
+            <p className="mt-1.5 text-right text-xs tabular-nums text-muted">
               {value.length} / {MAX_BODY}
             </p>
           </section>
@@ -250,7 +250,7 @@ export default function SuggestionForm({ departments }: { departments: Departmen
       )}
 
       <div className="card flex flex-wrap items-center justify-between gap-3 p-5">
-        <p className="text-[13px] leading-relaxed text-muted">
+        <p className="form-desc">
           {ready ? (
             <>접수된 내용은 검토 후 채택된 의견에 한해 개별 연락드리겠습니다.</>
           ) : (
