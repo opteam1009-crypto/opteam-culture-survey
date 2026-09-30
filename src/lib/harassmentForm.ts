@@ -347,24 +347,58 @@ export function harassmentDocument(
               blocks: [
                 {
                   rows: [
-                    { label: "발생 일자 및 시간", value: inc.when },
-                    { label: "발생 장소", value: inc.place },
-                    { label: "당시 상황", value: inc.context },
-                    { label: "구체적인 피해사실", value: inc.facts },
-                    { label: "당시 본인의 대응", value: inc.response },
-                    { label: "사건 이후 상황", value: inc.after },
+                    { label: "2. 발생 일자 및 시간", value: inc.when },
+                    { label: "3. 발생 장소", value: inc.place },
+                    { label: "4. 당시 상황", value: inc.context },
+                    { label: "5. 구체적인 피해사실", value: inc.facts },
+                    { label: "6. 당시 본인의 대응", value: inc.response },
+                    { label: "7. 사건 이후 상황", value: inc.after },
                   ],
                 },
               ],
             }))
-          : [{ title: "사건별 기술", empty: "사건별로 적은 내용이 없습니다.", blocks: [] }]),
+          : [{ title: "사건별 기술(2~7항)", empty: "사건별로 적은 내용이 없습니다.", blocks: [] }]),
+        // 8~10항은 화면에서 신고서 6·4·8항으로 한 번만 받은 내용을 상세기술서 항목 이름으로 다시 적습니다.
         {
-          title: "피해 내용 · 목격자 및 참고인 · 관련 증거자료",
-          note: "신고서 6항·4항·8항에 적은 내용과 같습니다.",
-          blocks: [],
+          title: "8. 피해 내용",
+          note: "신고서 6항에 적은 내용",
+          blocks: [
+            {
+              rows: [
+                { label: "업무 수행·근무환경에 미친 영향 및 기타 피해사항", value: body.damage.impact },
+                { label: "현재까지 지속되고 있는 상황", value: body.damage.ongoing },
+              ],
+            },
+          ],
         },
         {
-          title: "기타 조사 시 참고가 필요한 사항",
+          title: "9. 목격자 및 참고인",
+          note: "신고서 4항에 적은 내용",
+          empty: "적은 사람이 없습니다.",
+          blocks: body.witnesses.map((w, i) => ({
+            heading: `참고인 ${i + 1}`,
+            rows: [
+              { label: "성명", value: w.name },
+              { label: "소속/직위", value: w.affiliation },
+              { label: "해당 인원이 확인할 수 있는 내용", value: w.knows },
+            ],
+          })),
+        },
+        {
+          title: "10. 관련 증거자료",
+          note: "신고서 8항에 적은 내용",
+          empty: "적은 자료가 없습니다.",
+          blocks: body.evidenceItems.map((e, i) => ({
+            heading: `자료 ${i + 1}`,
+            rows: [
+              { label: "자료명", value: e.name },
+              { label: "자료의 일자", value: e.date },
+              { label: "해당 자료로 확인할 수 있는 내용", value: e.proves },
+            ],
+          })),
+        },
+        {
+          title: "11. 기타 조사 시 참고가 필요한 사항",
           blocks: [{ rows: [{ label: "내용", value: body.other }] }],
         },
         {

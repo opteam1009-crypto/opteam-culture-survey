@@ -236,7 +236,11 @@ export default function HarassmentForm({
         </Field>
       </Section>
 
-      <Section no={4} title="목격자 및 참고인">
+      <Section
+        no={4}
+        title="목격자 및 참고인"
+        hint="사람마다 성명, 소속/직위, 확인 가능한 내용을 적어주세요."
+      >
         <Repeat
           items={witnesses}
           max={MAX_WITNESSES}
@@ -342,8 +346,7 @@ export default function HarassmentForm({
       </Section>
 
       <PartTitle title="피해사실 상세기술서">
-        ※ 피해사실이 여러 건인 경우 사건별로 구분하여 작성해 주시기 바랍니다. 피해 내용, 목격자 및 참고인,
-        관련 증거자료는 위 신고서 6·4·8항에 적은 내용으로 갈음합니다.
+        ※ 피해사실이 여러 건인 경우 사건별로 구분하여 작성해 주시기 바랍니다.
       </PartTitle>
 
       {incidents.map((inc, i) => {
@@ -358,22 +361,22 @@ export default function HarassmentForm({
               )}
             </div>
             <Grid className="mt-4">
-              <Field label="발생 일자 및 시간">
+              <Field label="2. 발생 일자 및 시간">
                 <Input value={inc.when} onChange={(v) => set({ when: v })} placeholder="예) 2026. 9. 3. 오후 2시경" />
               </Field>
-              <Field label="발생 장소">
+              <Field label="3. 발생 장소">
                 <Input value={inc.place} onChange={(v) => set({ place: v })} placeholder="예) 3층 회의실" />
               </Field>
             </Grid>
             <Field
-              label="당시 상황"
+              label="4. 당시 상황"
               hint="사건이 발생하게 된 경위 · 당시 함께 있었던 사람 · 당시 업무 상황 및 전후 사정"
               className="mt-4"
             >
               <Area value={inc.context} onChange={(v) => set({ context: v })} rows={3} />
             </Field>
             <Field
-              label="구체적인 피해사실"
+              label="5. 구체적인 피해사실"
               hint="피신고인이 한 구체적인 행동 · 피신고인이 한 구체적인 발언 · 행위가 이루어진 방식 및 당시 상황 · 동일하거나 유사한 행위가 반복된 경우 발생 기간 및 횟수"
               className="mt-4"
             >
@@ -383,14 +386,14 @@ export default function HarassmentForm({
               <Area value={inc.facts} onChange={(v) => set({ facts: v })} rows={5} />
             </Field>
             <Field
-              label="당시 본인의 대응"
+              label="6. 당시 본인의 대응"
               hint="피신고인에게 의사를 표현했는지 여부 및 내용 · 상급자 또는 회사에 알렸는지 여부 · 기타 당시 취한 대응"
               className="mt-4"
             >
               <Area value={inc.response} onChange={(v) => set({ response: v })} rows={3} />
             </Field>
             <Field
-              label="사건 이후 상황"
+              label="7. 사건 이후 상황"
               hint="피신고인의 추가적인 행동 또는 발언 · 업무 또는 근무환경의 변화 · 현재까지 지속되고 있는 상황"
               className="mt-4"
             >
@@ -404,10 +407,25 @@ export default function HarassmentForm({
         <AddButton label="사건 추가" onClick={() => setIncidents((all) => [...all, emptyIncident()])} />
       )}
 
+      {/* 8~10항은 신고서와 겹쳐 한 번만 받습니다. 접수된 서식에는 상세기술서 항목으로도 들어갑니다. */}
       <section className="card p-5 sm:p-7">
-        <h2 className="text-[15px] font-bold">기타 조사 시 참고가 필요한 사항</h2>
-        <div className="mt-3">
-          <Area value={other} onChange={setOther} rows={3} />
+        <ul className="space-y-2.5 text-sm">
+          {[
+            ["8. 피해 내용", "신고서 6항"],
+            ["9. 목격자 및 참고인", "신고서 4항"],
+            ["10. 관련 증거자료", "신고서 8항"],
+          ].map(([item, from]) => (
+            <li key={item} className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+              <span className="font-bold text-ink">{item}</span>
+              <span className="text-[13px] text-muted">{from}에 적은 내용이 그대로 들어갑니다.</span>
+            </li>
+          ))}
+        </ul>
+        <div className="mt-5 border-t border-line pt-5">
+          <h2 className="text-[15px] font-bold">11. 기타 조사 시 참고가 필요한 사항</h2>
+          <div className="mt-3">
+            <Area value={other} onChange={setOther} rows={3} />
+          </div>
         </div>
       </section>
 
