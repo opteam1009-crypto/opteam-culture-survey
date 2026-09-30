@@ -347,20 +347,20 @@ export function harassmentDocument(
               blocks: [
                 {
                   rows: [
-                    { label: "2. 발생 일자 및 시간", value: inc.when },
-                    { label: "3. 발생 장소", value: inc.place },
-                    { label: "4. 당시 상황", value: inc.context },
-                    { label: "5. 구체적인 피해사실", value: inc.facts },
-                    { label: "6. 당시 본인의 대응", value: inc.response },
-                    { label: "7. 사건 이후 상황", value: inc.after },
+                    { label: "1. 발생 일자 및 시간", value: inc.when },
+                    { label: "2. 발생 장소", value: inc.place },
+                    { label: "3. 당시 상황", value: inc.context },
+                    { label: "4. 구체적인 피해사실", value: inc.facts },
+                    { label: "5. 당시 본인의 대응", value: inc.response },
+                    { label: "6. 사건 이후 상황", value: inc.after },
                   ],
                 },
               ],
             }))
-          : [{ title: "사건별 기술(2~7항)", empty: "사건별로 적은 내용이 없습니다.", blocks: [] }]),
-        // 8~10항은 화면에서 신고서 6·4·8항으로 한 번만 받은 내용을 상세기술서 항목 이름으로 다시 적습니다.
+          : [{ title: "사건별 기술(1~6항)", empty: "사건별로 적은 내용이 없습니다.", blocks: [] }]),
+        // 7~9항은 화면에서 신고서 6·4·8항으로 한 번만 받은 내용을 상세기술서 항목 이름으로 다시 적습니다.
         {
-          title: "8. 피해 내용",
+          title: "7. 피해 내용",
           note: "신고서 6항에 적은 내용",
           blocks: [
             {
@@ -372,7 +372,7 @@ export function harassmentDocument(
           ],
         },
         {
-          title: "9. 목격자 및 참고인",
+          title: "8. 목격자 및 참고인",
           note: "신고서 4항에 적은 내용",
           empty: "적은 사람이 없습니다.",
           blocks: body.witnesses.map((w, i) => ({
@@ -385,7 +385,7 @@ export function harassmentDocument(
           })),
         },
         {
-          title: "10. 관련 증거자료",
+          title: "9. 관련 증거자료",
           note: "신고서 8항에 적은 내용",
           empty: "적은 자료가 없습니다.",
           blocks: body.evidenceItems.map((e, i) => ({
@@ -398,7 +398,7 @@ export function harassmentDocument(
           })),
         },
         {
-          title: "11. 기타 조사 시 참고가 필요한 사항",
+          title: "10. 기타 조사 시 참고가 필요한 사항",
           blocks: [{ rows: [{ label: "내용", value: body.other }] }],
         },
         {

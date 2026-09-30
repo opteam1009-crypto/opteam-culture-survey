@@ -361,22 +361,22 @@ export default function HarassmentForm({
               )}
             </div>
             <Grid className="mt-4">
-              <Field label="2. 발생 일자 및 시간">
+              <Field label="1. 발생 일자 및 시간">
                 <Input value={inc.when} onChange={(v) => set({ when: v })} placeholder="예) 2026. 9. 3. 오후 2시경" />
               </Field>
-              <Field label="3. 발생 장소">
+              <Field label="2. 발생 장소">
                 <Input value={inc.place} onChange={(v) => set({ place: v })} placeholder="예) 3층 회의실" />
               </Field>
             </Grid>
             <Field
-              label="4. 당시 상황"
+              label="3. 당시 상황"
               hint="사건이 발생하게 된 경위 · 당시 함께 있었던 사람 · 당시 업무 상황 및 전후 사정"
               className="mt-4"
             >
               <Area value={inc.context} onChange={(v) => set({ context: v })} rows={3} />
             </Field>
             <Field
-              label="5. 구체적인 피해사실"
+              label="4. 구체적인 피해사실"
               hint="피신고인이 한 구체적인 행동 · 피신고인이 한 구체적인 발언 · 행위가 이루어진 방식 및 당시 상황 · 동일하거나 유사한 행위가 반복된 경우 발생 기간 및 횟수"
               className="mt-4"
             >
@@ -386,14 +386,14 @@ export default function HarassmentForm({
               <Area value={inc.facts} onChange={(v) => set({ facts: v })} rows={5} />
             </Field>
             <Field
-              label="6. 당시 본인의 대응"
+              label="5. 당시 본인의 대응"
               hint="피신고인에게 의사를 표현했는지 여부 및 내용 · 상급자 또는 회사에 알렸는지 여부 · 기타 당시 취한 대응"
               className="mt-4"
             >
               <Area value={inc.response} onChange={(v) => set({ response: v })} rows={3} />
             </Field>
             <Field
-              label="7. 사건 이후 상황"
+              label="6. 사건 이후 상황"
               hint="피신고인의 추가적인 행동 또는 발언 · 업무 또는 근무환경의 변화 · 현재까지 지속되고 있는 상황"
               className="mt-4"
             >
@@ -407,25 +407,44 @@ export default function HarassmentForm({
         <AddButton label="사건 추가" onClick={() => setIncidents((all) => [...all, emptyIncident()])} />
       )}
 
-      {/* 8~10항은 신고서와 겹쳐 한 번만 받습니다. 접수된 서식에는 상세기술서 항목으로도 들어갑니다. */}
+      {/*
+        상세기술서 7~9항은 신고서 6·4·8항과 같은 항목이라 다시 받지 않습니다.
+        안내 문구만 두면 무슨 뜻인지 와닿지 않아서, 위에서 적은 내용을 그대로 비춰 보여줍니다.
+      */}
       <section className="card p-5 sm:p-7">
-        <ul className="space-y-2.5 text-sm">
-          {[
-            ["8. 피해 내용", "신고서 6항"],
-            ["9. 목격자 및 참고인", "신고서 4항"],
-            ["10. 관련 증거자료", "신고서 8항"],
-          ].map(([item, from]) => (
-            <li key={item} className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-              <span className="font-bold text-ink">{item}</span>
-              <span className="text-[13px] text-muted">{from}에 적은 내용이 그대로 들어갑니다.</span>
-            </li>
-          ))}
-        </ul>
-        <div className="mt-5 border-t border-line pt-5">
-          <h2 className="text-[15px] font-bold">11. 기타 조사 시 참고가 필요한 사항</h2>
-          <div className="mt-3">
-            <Area value={other} onChange={setOther} rows={3} />
-          </div>
+        <p className="rounded-lg bg-brandSoft px-4 py-3 text-pretty text-[13px] leading-relaxed text-brand">
+          7~9항은 위 신고서 6·4·8항과 같은 질문이라 다시 적지 않으셔도 됩니다. 신고서에 적으신 내용이
+          아래에 자동으로 옮겨집니다.
+        </p>
+        <div className="mt-5 space-y-5">
+          <Mirror no={7} title="피해 내용" from={6} fromTitle="피해 내용">
+            {[damage.impact, damage.ongoing && `현재까지 지속되고 있는 상황: ${damage.ongoing}`]
+              .filter(Boolean)
+              .join("\n")}
+          </Mirror>
+          <Mirror no={8} title="목격자 및 참고인" from={4} fromTitle="목격자 및 참고인">
+            {witnesses
+              .filter((w) => w.name || w.affiliation || w.knows)
+              .map((w) => [[w.name, w.affiliation].filter(Boolean).join(" · "), w.knows].filter(Boolean).join(" — "))
+              .join("\n")}
+          </Mirror>
+          <Mirror no={9} title="관련 증거자료" from={8} fromTitle="첨부자료 목록">
+            {[
+              ...evidenceItems
+                .filter((e) => e.name || e.date || e.proves)
+                .map((e) => [e.name, e.date && `(${e.date})`, e.proves && `— ${e.proves}`].filter(Boolean).join(" ")),
+              images.length > 0 ? `사진 ${images.length}장` : "",
+            ]
+              .filter(Boolean)
+              .join("\n")}
+          </Mirror>
+        </div>
+      </section>
+
+      <section className="card p-5 sm:p-7">
+        <h2 className="text-[15px] font-bold">10. 기타 조사 시 참고가 필요한 사항</h2>
+        <div className="mt-3">
+          <Area value={other} onChange={setOther} rows={3} />
         </div>
       </section>
 
@@ -510,7 +529,7 @@ function Section({
   children: ReactNode;
 }) {
   return (
-    <section className="card p-5 sm:p-7">
+    <section id={`report-${no}`} className="card scroll-mt-4 p-5 sm:p-7">
       <div className="flex items-baseline gap-2.5">
         <span className="text-xs font-bold tabular-nums text-brand">{String(no).padStart(2, "0")}</span>
         <h2 className="text-[15px] font-bold">{title}</h2>
@@ -518,6 +537,41 @@ function Section({
       {hint && <p className="mt-1 text-pretty text-[13px] leading-relaxed text-muted">{hint}</p>}
       <div className="mt-4">{children}</div>
     </section>
+  );
+}
+
+/** 상세기술서 7~9항: 신고서에 적은 내용을 그대로 보여주고, 고칠 곳으로 이동하는 링크를 둡니다. */
+function Mirror({
+  no,
+  title,
+  from,
+  fromTitle,
+  children,
+}: {
+  no: number;
+  title: string;
+  from: number;
+  fromTitle: string;
+  children: string;
+}) {
+  return (
+    <div>
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+        <p className="text-sm font-bold text-ink">
+          {no}. {title}
+        </p>
+        <a href={`#report-${from}`} className="text-xs font-semibold text-brand hover:underline">
+          신고서 {from}항으로 이동 ↑
+        </a>
+      </div>
+      <p
+        className={`mt-1.5 whitespace-pre-wrap break-words rounded-lg bg-gray-50 px-3.5 py-2.5 text-[13px] leading-relaxed ${
+          children ? "text-ink/80" : "text-muted"
+        }`}
+      >
+        {children || `신고서 ${from}항(${fromTitle})에 적으시면 여기에 자동으로 옮겨집니다.`}
+      </p>
+    </div>
   );
 }
 
