@@ -168,6 +168,8 @@ export interface SuggestionMailInput {
   situation: string;
   proposal: string;
   expect: string;
+  /** 첨부 사진 장수. 사진은 메일에 싣지 않고 대시보드에서 봅니다. */
+  attachmentCount?: number;
   dashboardUrl: string;
 }
 
@@ -196,6 +198,7 @@ export async function sendSuggestionNotification(input: SuggestionMailInput): Pr
     `[기대효과]`,
     input.expect,
     "",
+    ...(input.attachmentCount ? [`첨부 사진 ${input.attachmentCount}장 · 대시보드에서 확인하세요.`, ""] : []),
     input.dashboardUrl,
   ].join("\n");
 
@@ -210,6 +213,11 @@ export async function sendSuggestionNotification(input: SuggestionMailInput): Pr
         ${block("제안", input.proposal)}
         ${block("기대효과", input.expect)}
       </table>
+      ${
+        input.attachmentCount
+          ? `<p style="margin:14px 0 0;color:#6b6a67;font-size:13px">첨부 사진 ${input.attachmentCount}장 · 대시보드에서 확인하세요.</p>`
+          : ""
+      }
       <p style="margin:18px 0 0">
         <a href="${escapeAttr(input.dashboardUrl)}"
            style="display:inline-block;padding:9px 16px;background:#1f4d8f;color:#fff;border-radius:8px;text-decoration:none;font-size:13px">
@@ -286,6 +294,8 @@ export async function sendConfidentialReport(input: {
   department: string;
   contact: string;
   sections: { label: string; value: string }[];
+  /** 증빙 사진 장수. 사진은 메일에 싣지 않고 대시보드에서 봅니다. */
+  attachmentCount?: number;
 }): Promise<{ status: "sent" | "failed"; error: string | null }> {
   const subject = `[${input.tag}] 새 접수가 있습니다`;
 
@@ -298,6 +308,9 @@ export async function sendConfidentialReport(input: {
   for (const s of input.sections) {
     if (!s.value) continue;
     lines.push("", `[${s.label}]`, s.value);
+  }
+  if (input.attachmentCount) {
+    lines.push("", `증빙 사진 ${input.attachmentCount}장 · 대시보드에서 확인하세요.`);
   }
   lines.push("", "이 메일은 지정된 담당자에게만 발송되었습니다. 전달·공유 시 주의해 주세요.");
   const text = lines.join("\n");
@@ -320,6 +333,11 @@ export async function sendConfidentialReport(input: {
         </div>`,
         )
         .join("")}
+      ${
+        input.attachmentCount
+          ? `<p style="margin:14px 0 0;color:#6b6a67;font-size:13px">증빙 사진 ${input.attachmentCount}장 · 대시보드에서 확인하세요.</p>`
+          : ""
+      }
       <p style="margin:20px 0 0;color:#93441f;font-size:12px">
         이 메일은 지정된 담당자에게만 발송되었습니다. 전달·공유 시 주의해 주세요.
       </p>

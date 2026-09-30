@@ -124,6 +124,11 @@ export default async function SuggestionsPage({
                     <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[11px] font-semibold text-muted">
                       {TOPIC_LABEL[row.topic] ?? row.topic}
                     </span>
+                    {row.attachment_count > 0 && (
+                      <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[11px] font-semibold text-muted">
+                        사진 {row.attachment_count}
+                      </span>
+                    )}
                     <span className="ml-auto text-[11px] tabular-nums text-muted">
                       {formatDateTime(row.submitted_at)}
                     </span>

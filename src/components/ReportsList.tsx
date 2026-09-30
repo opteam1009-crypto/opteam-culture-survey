@@ -12,6 +12,7 @@ import {
 } from "@/lib/confidential";
 import ReportDeadline, { daysSince } from "./ReportDeadline";
 import DeleteEntryButton from "./DeleteEntryButton";
+import LawReference from "./LawReference";
 
 /** 탭마다 머리말과 맨 위 숫자가 다릅니다. 창구마다 챙겨야 할 것이 달라서입니다. */
 const HEAD: Record<ConfidentialKind, { title: string; desc: string }> = {
@@ -51,6 +52,8 @@ export default async function ReportsList({ kind }: { kind: ConfidentialKind }) 
           접수 화면 열기 ↗
         </Link>
       </header>
+
+      <LawReference kind={kind} />
 
       <div className="grid grid-cols-3 gap-2 sm:gap-3">
         <Tile label="미처리" value={open.length} alert={open.length > 0} />
@@ -109,6 +112,11 @@ function ReportCard({ r }: { r: ConfidentialReport }) {
           {REPORT_STATUS_LABEL[r.status] ?? r.status}
         </span>
         <ReportDeadline r={r} />
+        {r.attachment_count > 0 && (
+          <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[11px] font-semibold text-muted">
+            사진 {r.attachment_count}
+          </span>
+        )}
         <span className="ml-auto text-[11px] tabular-nums text-muted">
           {formatDateTime(r.submitted_at)}
         </span>

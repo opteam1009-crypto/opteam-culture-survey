@@ -9,6 +9,7 @@ import {
   isConfidentialKind,
 } from "@/lib/confidential";
 import { sendConfidentialReport } from "@/lib/mail";
+import { attachmentColumns, parseAttachments } from "@/lib/attachments";
 
 export const dynamic = "force-dynamic";
 
@@ -52,17 +53,31 @@ export async function POST(request: Request, { params }: { params: { kind: strin
     body[field.code] = value;
   }
 
+  const attached = parseAttachments(payload.attachments);
+  if (!attached.ok) return NextResponse.json({ error: attached.error }, { status: 400 });
+  const files = attachmentColumns(attached.files);
+
   try {
     await ensureSchema();
     const q = sql();
 
     // 대시보드에서 읽는 것이 기본입니다. 메일은 등록되어 있을 때만 덧붙입니다.
+    // 접수와 증빙 사진은 한 문장으로 넣어, 사진만 빠진 채 접수가 남는 일이 없게 합니다.
     const inserted = (await q`
-      insert into confidential_reports
-        (kind, reporter_name, department_name, contact, body)
-      values
-        (${channel.kind}, ${name}, ${department}, ${contact}, ${JSON.stringify(body)}::jsonb)
-      returning id
+      with r as (
+        insert into confidential_reports
+          (kind, reporter_name, department_name, contact, body)
+        values
+          (${channel.kind}, ${name}, ${department}, ${contact}, ${JSON.stringify(body)}::jsonb)
+        returning id
+      ), a as (
+        insert into attachments (report_id, filename, mime, size, data)
+        select r.id, f.filename, f.mime, f.size, f.data
+          from r, unnest(${files.names}::text[], ${files.mimes}::text[],
+                         ${files.sizes}::int[], ${files.datas}::bytea[])
+               as f(filename, mime, size, data)
+      )
+      select id from r
     `) as { id: string }[];
     const id = inserted[0].id;
 
@@ -79,6 +94,7 @@ export async function POST(request: Request, { params }: { params: { kind: strin
       department,
       contact,
       sections: channel.fields.map((f) => ({ label: f.label, value: body[f.code] })),
+      attachmentCount: attached.files.length,
     });
 
     await q`

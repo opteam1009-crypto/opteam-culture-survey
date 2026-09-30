@@ -13,6 +13,8 @@ import {
 import SuggestionStatusControls from "@/components/SuggestionStatusControls";
 import PrintButton from "@/components/PrintButton";
 import DeleteEntryButton from "@/components/DeleteEntryButton";
+import AttachmentGallery from "@/components/AttachmentGallery";
+import { loadAttachmentList } from "@/lib/attachments";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +27,8 @@ export default async function SuggestionDetailPage({ params }: { params: { id: s
   if (!item) notFound();
 
   const tone = statusTone(item.status);
+  const attachments =
+    item.attachment_count > 0 ? await loadAttachmentList({ suggestionId: item.id }) : [];
   const body: Record<string, string> = {
     situation: item.situation,
     proposal: item.proposal,
@@ -72,6 +76,8 @@ export default async function SuggestionDetailPage({ params }: { params: { id: s
             </section>
           ))}
         </div>
+
+        <AttachmentGallery title="참고 사진" items={attachments} />
 
         {item.reply && (
           <section className="mt-5 rounded-xl bg-gray-50 px-4 py-3.5">

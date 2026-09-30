@@ -201,4 +201,6 @@ export interface Suggestion {
   reply: string;
   replied_at: string | null;
   handled_by: string;
+  /** 첨부 사진 장수 */
+  attachment_count: number;
 }

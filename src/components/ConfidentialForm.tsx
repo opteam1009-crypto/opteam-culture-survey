@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { ConfidentialField, ConfidentialKind } from "@/lib/confidential";
+import type { PreparedImage } from "@/lib/prepareImage";
+import AttachmentPicker from "./AttachmentPicker";
 
 interface Props {
   kind: ConfidentialKind;
@@ -18,6 +20,8 @@ export default function ConfidentialForm({ kind, path, fields, departments }: Pr
   const [department, setDepartment] = useState("");
   const [contact, setContact] = useState("");
   const [body, setBody] = useState<Record<string, string>>({});
+  const [images, setImages] = useState<PreparedImage[]>([]);
+  const [preparing, setPreparing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -28,14 +32,20 @@ export default function ConfidentialForm({ kind, path, fields, departments }: Pr
     fields.every((f) => !f.required || (body[f.code] ?? "").trim());
 
   async function submit() {
-    if (!ready || busy) return;
+    if (!ready || busy || preparing) return;
     setBusy(true);
     setError(null);
     try {
       const res = await fetch(`/api/confidential/${kind}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, department, contact, ...body }),
+        body: JSON.stringify({
+          name,
+          department,
+          contact,
+          ...body,
+          attachments: images.map(({ name: fileName, data }) => ({ name: fileName, data })),
+        }),
       });
       const data = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) {
@@ -121,6 +131,14 @@ export default function ConfidentialForm({ kind, path, fields, departments }: Pr
         </section>
       ))}
 
+      <AttachmentPicker
+        title="증빙 자료"
+        hint="사진이나 메신저 대화 캡처 등이 있으면 함께 올려주세요. 최대 5장까지 올릴 수 있습니다."
+        images={images}
+        onChange={setImages}
+        onBusyChange={setPreparing}
+      />
+
       {error && (
         <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}
@@ -131,8 +149,8 @@ export default function ConfidentialForm({ kind, path, fields, departments }: Pr
         <p className="text-pretty text-[13px] leading-relaxed text-muted">
           적어주신 내용은 조사와 처리에 필요한 범위에서만 다룹니다.
         </p>
-        <button type="submit" className="btn-primary px-6 py-2.5 text-sm" disabled={!ready || busy}>
-          {busy ? "보내는 중…" : "접수하기"}
+        <button type="submit" className="btn-primary px-6 py-2.5 text-sm" disabled={!ready || busy || preparing}>
+          {busy ? "보내는 중…" : preparing ? "사진 담는 중…" : "접수하기"}
         </button>
       </div>
     </form>

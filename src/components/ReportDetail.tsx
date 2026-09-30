@@ -13,6 +13,8 @@ import ReportDeadline from "./ReportDeadline";
 import ReportStatusControls from "./ReportStatusControls";
 import PrintButton from "./PrintButton";
 import DeleteEntryButton from "./DeleteEntryButton";
+import AttachmentGallery from "./AttachmentGallery";
+import { loadAttachmentList } from "@/lib/attachments";
 
 const BACK: Record<ConfidentialKind, string> = {
   grievance: "노사 고충 목록",
@@ -28,6 +30,7 @@ export default async function ReportDetail({ id, kind }: { id: string; kind: Con
 
   const channel = CONFIDENTIAL_CHANNELS[r.kind];
   const tone = reportTone(r.status);
+  const attachments = r.attachment_count > 0 ? await loadAttachmentList({ reportId: r.id }) : [];
 
   return (
     <div className="space-y-5">
@@ -71,6 +74,8 @@ export default async function ReportDetail({ id, kind }: { id: string; kind: Con
             </section>
           ))}
         </div>
+
+        <AttachmentGallery title="증빙 자료" items={attachments} />
 
         {r.note && (
           <section className="mt-5 rounded-xl bg-gray-50 px-4 py-3.5">

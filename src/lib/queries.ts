@@ -551,7 +551,9 @@ export async function loadSuggestions(period?: string): Promise<Suggestion[]> {
   await ensureSchema();
   return (await sql()`
     select id, period, submitted_at, proposer_name, department_id, department_name,
-           topic, title, situation, proposal, expect, status, reply, replied_at, handled_by
+           topic, title, situation, proposal, expect, status, reply, replied_at, handled_by,
+           (select count(*)::int from attachments a where a.suggestion_id = suggestions.id)
+             as attachment_count
       from suggestions
      where (${period ?? null}::text is null or period = ${period ?? null})
      order by submitted_at desc
@@ -562,7 +564,9 @@ export async function loadSuggestion(id: string): Promise<Suggestion | null> {
   await ensureSchema();
   const rows = (await sql()`
     select id, period, submitted_at, proposer_name, department_id, department_name,
-           topic, title, situation, proposal, expect, status, reply, replied_at, handled_by
+           topic, title, situation, proposal, expect, status, reply, replied_at, handled_by,
+           (select count(*)::int from attachments a where a.suggestion_id = suggestions.id)
+             as attachment_count
       from suggestions
      where id = ${id}::uuid
   `) as Suggestion[];
@@ -586,7 +590,9 @@ export async function loadReports(kind?: string): Promise<ConfidentialReport[]> 
   await ensureSchema();
   return (await sql()`
     select id, kind, submitted_at, reporter_name, department_name, contact, body,
-           status, note, handled_by, updated_at, delivery_status
+           status, note, handled_by, updated_at, delivery_status,
+           (select count(*)::int from attachments a where a.report_id = confidential_reports.id)
+             as attachment_count
       from confidential_reports
      where (${kind ?? null}::text is null or kind = ${kind ?? null})
      order by submitted_at desc
@@ -597,7 +603,9 @@ export async function loadReport(id: string): Promise<ConfidentialReport | null>
   await ensureSchema();
   const rows = (await sql()`
     select id, kind, submitted_at, reporter_name, department_name, contact, body,
-           status, note, handled_by, updated_at, delivery_status
+           status, note, handled_by, updated_at, delivery_status,
+           (select count(*)::int from attachments a where a.report_id = confidential_reports.id)
+             as attachment_count
       from confidential_reports
      where id = ${id}::uuid
   `) as ConfidentialReport[];

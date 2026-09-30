@@ -9,6 +9,7 @@ import {
   VALID_TOPICS,
 } from "@/lib/suggestions";
 import { sendSuggestionNotification } from "@/lib/mail";
+import { attachmentColumns, parseAttachments } from "@/lib/attachments";
 
 export const dynamic = "force-dynamic";
 
@@ -55,6 +56,10 @@ export async function POST(request: Request) {
     text[field.code] = value;
   }
 
+  const attached = parseAttachments(body.attachments);
+  if (!attached.ok) return NextResponse.json({ error: attached.error }, { status: 400 });
+  const files = attachmentColumns(attached.files);
+
   const period = currentPeriod();
   const userAgent = request.headers.get("user-agent")?.slice(0, 300) ?? null;
 
@@ -70,14 +75,24 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "선택한 소속 부서를 찾을 수 없습니다." }, { status: 400 });
     }
 
+    // 제안과 사진을 한 문장으로 넣습니다. 사진만 빠진 채 제안이 남는 일이 없습니다.
     const inserted = (await q`
-      insert into suggestions
-        (period, proposer_name, department_id, department_name, topic, title,
-         situation, proposal, expect, user_agent)
-      values
-        (${period}, ${name}, ${department.id}, ${department.name}, ${topic}, ${title},
-         ${text.situation}, ${text.proposal}, ${text.expect}, ${userAgent})
-      returning id, submitted_at
+      with s as (
+        insert into suggestions
+          (period, proposer_name, department_id, department_name, topic, title,
+           situation, proposal, expect, user_agent)
+        values
+          (${period}, ${name}, ${department.id}, ${department.name}, ${topic}, ${title},
+           ${text.situation}, ${text.proposal}, ${text.expect}, ${userAgent})
+        returning id, submitted_at
+      ), a as (
+        insert into attachments (suggestion_id, filename, mime, size, data)
+        select s.id, f.filename, f.mime, f.size, f.data
+          from s, unnest(${files.names}::text[], ${files.mimes}::text[],
+                         ${files.sizes}::int[], ${files.datas}::bytea[])
+               as f(filename, mime, size, data)
+      )
+      select id, submitted_at from s
     `) as { id: string; submitted_at: string }[];
 
     // 알림이 실패해도 접수를 되돌리지 않습니다. 내용은 notification_log 에 남습니다.
@@ -90,6 +105,7 @@ export async function POST(request: Request) {
       situation: text.situation,
       proposal: text.proposal,
       expect: text.expect,
+      attachmentCount: attached.files.length,
       dashboardUrl: suggestionsUrl(request),
     });
 

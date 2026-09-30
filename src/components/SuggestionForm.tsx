@@ -10,6 +10,8 @@ import {
   SUGGESTION_TOPICS,
   exampleFor,
 } from "@/lib/suggestions";
+import type { PreparedImage } from "@/lib/prepareImage";
+import AttachmentPicker from "./AttachmentPicker";
 
 interface Department {
   id: number;
@@ -29,6 +31,8 @@ export default function SuggestionForm({ departments }: { departments: Departmen
   const [topic, setTopic] = useState("");
   const [title, setTitle] = useState("");
   const [body, setBody] = useState<Record<string, string>>({});
+  const [images, setImages] = useState<PreparedImage[]>([]);
+  const [preparing, setPreparing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const topicRef = useRef<HTMLDivElement>(null);
@@ -40,7 +44,7 @@ export default function SuggestionForm({ departments }: { departments: Departmen
   const ready = name.trim() && departmentId && topic && title.trim() && filled;
 
   async function submit() {
-    if (!ready || busy) return;
+    if (!ready || busy || preparing) return;
     setBusy(true);
     setError(null);
     try {
@@ -55,6 +59,7 @@ export default function SuggestionForm({ departments }: { departments: Departmen
           situation: (body.situation ?? "").trim(),
           proposal: (body.proposal ?? "").trim(),
           expect: (body.expect ?? "").trim(),
+          attachments: images.map(({ name: fileName, data }) => ({ name: fileName, data })),
         }),
       });
       const data = (await res.json().catch(() => ({}))) as { error?: string };
@@ -230,6 +235,14 @@ export default function SuggestionForm({ departments }: { departments: Departmen
         );
       })}
 
+      <AttachmentPicker
+        title="참고 사진"
+        hint="현장 사진이나 화면 캡처가 있으면 함께 올려주세요. 최대 5장까지 올릴 수 있습니다."
+        images={images}
+        onChange={setImages}
+        onBusyChange={setPreparing}
+      />
+
       {error && (
         <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}
@@ -244,8 +257,8 @@ export default function SuggestionForm({ departments }: { departments: Departmen
             <>모든 항목을 입력하시면 제출할 수 있습니다.</>
           )}
         </p>
-        <button type="submit" className="btn-primary px-6 py-2.5 text-sm" disabled={!ready || busy}>
-          {busy ? "제출 중…" : "제안 제출"}
+        <button type="submit" className="btn-primary px-6 py-2.5 text-sm" disabled={!ready || busy || preparing}>
+          {busy ? "제출 중…" : preparing ? "사진 담는 중…" : "제안 제출"}
         </button>
       </div>
     </form>

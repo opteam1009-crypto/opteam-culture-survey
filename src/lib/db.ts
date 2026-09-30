@@ -264,6 +264,24 @@ async function runMigrations(): Promise<void> {
     create index if not exists confidential_reports_submitted_idx
       on confidential_reports (submitted_at desc);
 
+    /*
+      첨부 사진. 제안이나 고충·신고 중 정확히 하나에 달리고, 원래 건을 지우면
+      함께 지워집니다. 대시보드 로그인을 거친 요청만 내려받을 수 있습니다.
+    */
+    create table if not exists attachments (
+      id            uuid primary key default gen_random_uuid(),
+      suggestion_id uuid references suggestions(id) on delete cascade,
+      report_id     uuid references confidential_reports(id) on delete cascade,
+      filename      text not null,
+      mime          text not null,
+      size          int not null,
+      data          bytea not null,
+      created_at    timestamptz not null default now(),
+      check ((suggestion_id is null) <> (report_id is null))
+    );
+    create index if not exists attachments_suggestion_idx on attachments (suggestion_id);
+    create index if not exists attachments_report_idx on attachments (report_id);
+
     create table if not exists notification_log (
       id          bigserial primary key,
       response_id uuid references survey_responses(id) on delete cascade,

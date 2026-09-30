@@ -182,6 +182,8 @@ export interface ConfidentialReport {
   handled_by: string;
   updated_at: string | null;
   delivery_status: string;
+  /** 증빙 사진 장수 */
+  attachment_count: number;
 }
 
 export const MAX_CONTACT = 80;
@@ -202,4 +204,22 @@ export const DELETE_CONFIRM: Record<ConfidentialKind, { question: string; warnin
     question: "이 괴롭힘 신고를 삭제할까요?",
     warning: "실제 신고는 처리 기록이 남도록 삭제하지 말고 「처리 완료」로 닫아 주세요.",
   },
+};
+
+/** 탭 머리말 아래에 짧게 붙이는 관련 법령. 처리할 때 꼭 챙길 것만 둡니다. */
+export const LAW_NOTES: Record<ConfidentialKind, { text: string; source: string }[]> = {
+  grievance: [
+    { text: "고충을 들은 날부터 10일 이내에 처리 결과를 본인에게 알려야 합니다.", source: "근로자참여법 제28조" },
+    {
+      text: "고충 접수·처리 대장은 1년간 보존해야 합니다. 실제 접수는 삭제하지 말고 「처리 완료」로 닫아 주세요.",
+      source: "근로자참여법 시행령 제9조",
+    },
+  ],
+  harassment: [
+    { text: "신고를 받으면 지체 없이 객관적으로 조사해야 합니다.", source: "근로기준법 제76조의3" },
+    {
+      text: "신고자와 피해자에게 불리한 처우를 해서는 안 되며, 조사 중 알게 된 내용은 본인 의사에 반해 누설할 수 없습니다.",
+      source: "근로기준법 제76조의3",
+    },
+  ],
 };
