@@ -16,7 +16,7 @@ export default function SuggestThanksPage() {
 
         <div className="px-8 py-7 text-left">
           <p className="text-pretty text-sm leading-relaxed text-muted">
-            기획운영팀이 매월 취합해 대표님께 보고한 뒤 검토 결과를 회신드립니다.
+            접수된 내용은 검토 후 채택된 의견에 한해 개별 연락드리겠습니다.
             채택된 제안에는 포상이 있습니다.
           </p>
           <p className="mt-6 text-xs text-muted">추가 제안은 언제든 제출하실 수 있습니다.</p>

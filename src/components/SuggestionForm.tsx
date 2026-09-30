@@ -87,7 +87,7 @@ export default function SuggestionForm({ departments }: { departments: Departmen
       <section className="card p-5 sm:p-7">
         <h2 className="text-[15px] font-bold">제안자</h2>
         <p className="mt-1 text-[13px] leading-relaxed text-muted">
-          검토 결과를 회신드릴 때 사용합니다.
+          채택 시 개별 연락을 드릴 때 사용합니다.
         </p>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <label className="text-sm">
@@ -252,7 +252,7 @@ export default function SuggestionForm({ departments }: { departments: Departmen
       <div className="card flex flex-wrap items-center justify-between gap-3 p-5">
         <p className="text-[13px] leading-relaxed text-muted">
           {ready ? (
-            <>제출하신 제안은 기획운영팀이 확인 후 검토 결과를 회신드립니다.</>
+            <>접수된 내용은 검토 후 채택된 의견에 한해 개별 연락드리겠습니다.</>
           ) : (
             <>모든 항목을 입력하시면 제출할 수 있습니다.</>
           )}

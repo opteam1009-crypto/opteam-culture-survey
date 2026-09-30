@@ -15,6 +15,8 @@ import PrintButton from "./PrintButton";
 import DeleteEntryButton from "./DeleteEntryButton";
 import AttachmentGallery from "./AttachmentGallery";
 import { loadAttachmentList } from "@/lib/attachments";
+import { harassmentDocument, isHarassmentBody } from "@/lib/harassmentForm";
+import HarassmentDocView from "./HarassmentDocView";
 
 const BACK: Record<ConfidentialKind, string> = {
   grievance: "노사 고충 목록",
@@ -31,6 +33,14 @@ export default async function ReportDetail({ id, kind }: { id: string; kind: Con
   const channel = CONFIDENTIAL_CHANNELS[r.kind];
   const tone = reportTone(r.status);
   const attachments = r.attachment_count > 0 ? await loadAttachmentList({ reportId: r.id }) : [];
+  // 새 괴롭힘 신고서는 서식 순서대로, 그 밖(고충·예전 신고)은 칸 순서대로 보여줍니다.
+  const doc = isHarassmentBody(r.body)
+    ? harassmentDocument(
+        r.body,
+        { name: r.reporter_name, department: r.department_name, contact: r.contact, submittedAt: r.submitted_at },
+        attachments.map((a) => a.filename),
+      )
+    : null;
 
   return (
     <div className="space-y-5">
@@ -58,22 +68,30 @@ export default async function ReportDetail({ id, kind }: { id: string; kind: Con
           </span>
         </div>
 
-        <dl className="mt-4 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-3">
-          <Item label="접수자" value={r.reporter_name} />
-          <Item label="소속" value={r.department_name} />
-          <Item label="연락처" value={r.contact} />
-        </dl>
+        {doc ? (
+          <div className="mt-5">
+            <HarassmentDocView parts={doc} />
+          </div>
+        ) : (
+          <>
+            <dl className="mt-4 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-3">
+              <Item label="접수자" value={r.reporter_name} />
+              <Item label="소속" value={r.department_name} />
+              <Item label="연락처" value={r.contact} />
+            </dl>
 
-        <div className="mt-5 space-y-4 border-t border-line pt-5">
-          {channel.fields.map((f) => (
-            <section key={f.code}>
-              <h2 className="text-xs font-bold text-brand">{f.label}</h2>
-              <p className="mt-1 whitespace-pre-wrap text-[15px] leading-[1.8] text-ink/85">
-                {r.body?.[f.code] || "—"}
-              </p>
-            </section>
-          ))}
-        </div>
+            <div className="mt-5 space-y-4 border-t border-line pt-5">
+              {channel.fields.map((f) => (
+                <section key={f.code}>
+                  <h2 className="text-xs font-bold text-brand">{f.label}</h2>
+                  <p className="mt-1 whitespace-pre-wrap text-[15px] leading-[1.8] text-ink/85">
+                    {String(r.body?.[f.code] ?? "") || "—"}
+                  </p>
+                </section>
+              ))}
+            </div>
+          </>
+        )}
 
         <AttachmentGallery title="증빙 자료" items={attachments} />
 

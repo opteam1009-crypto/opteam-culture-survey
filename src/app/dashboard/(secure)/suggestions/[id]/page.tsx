@@ -99,9 +99,6 @@ export default async function SuggestionDetailPage({ params }: { params: { id: s
 
       <section className="card p-5 sm:p-7 print:hidden">
         <h2 className="text-[15px] font-bold">처리</h2>
-        <p className="mt-1 text-[13px] leading-relaxed text-muted">
-          기획운영팀이 월 1회 취합해 대표님께 보고한 뒤, 여기서 결과를 남깁니다.
-        </p>
         <div className="mt-4">
           <SuggestionStatusControls id={item.id} status={item.status} reply={item.reply} />
         </div>

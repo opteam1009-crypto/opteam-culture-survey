@@ -2,6 +2,7 @@ import Link from "next/link";
 import { loadActiveDepartments } from "@/lib/queries";
 import { CONFIDENTIAL_CHANNELS, type ConfidentialKind } from "@/lib/confidential";
 import ConfidentialForm from "./ConfidentialForm";
+import HarassmentForm from "./HarassmentForm";
 
 /**
  * 전담 창구 접수 화면(고충·괴롭힘 공용).
@@ -26,12 +27,16 @@ export default async function ConfidentialPage({ kind }: { kind: ConfidentialKin
       </header>
 
       <div className="mt-5">
-        <ConfidentialForm
-          kind={kind}
-          path={channel.path}
-          fields={channel.fields}
-          departments={departments}
-        />
+        {kind === "harassment" ? (
+          <HarassmentForm path={channel.path} departments={departments} />
+        ) : (
+          <ConfidentialForm
+            kind={kind}
+            path={channel.path}
+            fields={channel.fields}
+            departments={departments}
+          />
+        )}
       </div>
     </main>
   );

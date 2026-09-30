@@ -5,6 +5,7 @@ import {
   CONFIDENTIAL_CHANNELS,
   DELETE_CONFIRM,
   GRIEVANCE_DEADLINE_DAYS,
+  reportPreview,
   REPORT_STATUS_LABEL,
   reportTone,
   type ConfidentialKind,
@@ -97,8 +98,6 @@ export default async function ReportsList({ kind }: { kind: ConfidentialKind }) 
 
 function ReportCard({ r }: { r: ConfidentialReport }) {
   const tone = reportTone(r.status);
-  const channel = CONFIDENTIAL_CHANNELS[r.kind];
-  const first = channel.fields.find((f) => f.code === "what");
   return (
     <Link
       href={`/dashboard/${r.kind}/${r.id}`}
@@ -122,7 +121,7 @@ function ReportCard({ r }: { r: ConfidentialReport }) {
         </span>
       </div>
       <p className="mt-2 line-clamp-2 text-[14px] leading-relaxed text-ink">
-        {(first && r.body?.[first.code]) || "—"}
+        {reportPreview(r)}
       </p>
       <p className="mt-2 pr-14 text-xs text-muted">
         {r.department_name} · {r.reporter_name}

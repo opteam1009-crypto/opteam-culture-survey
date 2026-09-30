@@ -10,6 +10,12 @@ import {
 } from "@/lib/confidential";
 import { sendConfidentialReport } from "@/lib/mail";
 import { attachmentColumns, parseAttachments } from "@/lib/attachments";
+import {
+  harassmentDocument,
+  harassmentMailSections,
+  parseHarassment,
+  type HarassmentBody,
+} from "@/lib/harassmentForm";
 
 export const dynamic = "force-dynamic";
 
@@ -44,14 +50,23 @@ export async function POST(request: Request, { params }: { params: { kind: strin
     );
   }
 
-  const body: Record<string, string> = {};
-  for (const field of channel.fields) {
-    const value = str(payload[field.code], MAX_FIELD);
-    if (field.required && !value) {
-      return NextResponse.json({ error: `「${field.label}」을 적어주세요.` }, { status: 400 });
+  // 괴롭힘 신고는 신고서·상세기술서 양식으로, 고충은 칸 목록으로 받습니다.
+  let harassment: HarassmentBody | null = null;
+  const fields: Record<string, string> = {};
+  if (channel.kind === "harassment") {
+    const parsed = parseHarassment(payload, name);
+    if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
+    harassment = parsed.body;
+  } else {
+    for (const field of channel.fields) {
+      const value = str(payload[field.code], MAX_FIELD);
+      if (field.required && !value) {
+        return NextResponse.json({ error: `「${field.label}」을 적어주세요.` }, { status: 400 });
+      }
+      fields[field.code] = value;
     }
-    body[field.code] = value;
   }
+  const body = harassment ?? fields;
 
   const attached = parseAttachments(payload.attachments);
   if (!attached.ok) return NextResponse.json({ error: attached.error }, { status: 400 });
@@ -69,7 +84,7 @@ export async function POST(request: Request, { params }: { params: { kind: strin
           (kind, reporter_name, department_name, contact, body)
         values
           (${channel.kind}, ${name}, ${department}, ${contact}, ${JSON.stringify(body)}::jsonb)
-        returning id
+        returning id, submitted_at
       ), a as (
         insert into attachments (report_id, filename, mime, size, data)
         select r.id, f.filename, f.mime, f.size, f.data
@@ -77,8 +92,8 @@ export async function POST(request: Request, { params }: { params: { kind: strin
                          ${files.sizes}::int[], ${files.datas}::bytea[])
                as f(filename, mime, size, data)
       )
-      select id from r
-    `) as { id: string }[];
+      select id, submitted_at from r
+    `) as { id: string; submitted_at: string }[];
     const id = inserted[0].id;
 
     if (!confidentialMailReady(channel.kind)) {
@@ -93,7 +108,15 @@ export async function POST(request: Request, { params }: { params: { kind: strin
       name,
       department,
       contact,
-      sections: channel.fields.map((f) => ({ label: f.label, value: body[f.code] })),
+      sections: harassment
+        ? harassmentMailSections(
+            harassmentDocument(
+              harassment,
+              { name, department, contact, submittedAt: inserted[0].submitted_at },
+              attached.files.map((f) => f.filename),
+            ),
+          )
+        : channel.fields.map((f) => ({ label: f.label, value: fields[f.code] })),
       attachmentCount: attached.files.length,
     });
 

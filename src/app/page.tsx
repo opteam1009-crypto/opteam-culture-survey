@@ -58,8 +58,8 @@ export default async function SuggestPage() {
           <p className="mt-4 text-pretty text-[15px] leading-[1.8] text-white/85">
             {/* 「보고하며,」에서 끊습니다. 첫 줄이 한 번에 들어가는 넓은 화면에서만 끊고,
                 좁은 화면은 자연스럽게 흐르게 둡니다(억지로 끊으면 짧은 줄이 생깁니다). */}
-            회사 발전을 위한 제안을 상시 접수합니다. 기획운영팀이 매월 취합해 대표님께 보고하며,
-            <br className="hidden md:inline" /> 검토 결과는 제안자께 회신드립니다.
+            회사 발전을 위한 제안을 상시 접수합니다.
+            <br className="hidden md:inline" /> 접수된 내용은 검토 후 채택된 의견에 한해 개별 연락드리겠습니다.
           </p>
         </div>
 
@@ -93,7 +93,7 @@ export default async function SuggestPage() {
           </Notice>
 
           <Notice title="채택된 제안에는 포상이 있습니다">
-            검토 결과를 회신드리기 위해 성함과 소속을 함께 받고 있습니다.
+            채택 시 개별 연락을 드리기 위해 성함과 소속을 함께 받고 있습니다.
           </Notice>
         </div>
       </header>

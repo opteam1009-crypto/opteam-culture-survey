@@ -176,7 +176,8 @@ export interface ConfidentialReport {
   reporter_name: string;
   department_name: string;
   contact: string;
-  body: Record<string, string>;
+  /** 고충과 예전 괴롭힘 신고는 칸 이름→내용, 새 괴롭힘 신고서는 HarassmentBody */
+  body: Record<string, unknown>;
   status: string;
   note: string;
   handled_by: string;
@@ -223,3 +224,11 @@ export const LAW_NOTES: Record<ConfidentialKind, { text: string; source: string 
     },
   ],
 };
+
+/** 목록 카드에 한두 줄 보여줄 내용. 새 괴롭힘 신고서는 「주요 행위 또는 발언」. */
+export function reportPreview(r: Pick<ConfidentialReport, "body">): string {
+  const body = r.body ?? {};
+  const report = body.report as { acts?: unknown } | undefined;
+  const text = body.form === "harassment-v2" ? report?.acts : body.what;
+  return typeof text === "string" && text ? text : "—";
+}

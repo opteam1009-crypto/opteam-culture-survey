@@ -14,12 +14,15 @@ export default function AttachmentPicker({
   images,
   onChange,
   onBusyChange,
+  embedded = false,
 }: {
   title: string;
   hint: string;
   images: PreparedImage[];
   onChange: (next: PreparedImage[]) => void;
   onBusyChange?: (busy: boolean) => void;
+  /** 다른 카드 안에 넣을 때(괴롭힘 신고서 8항). 카드 테두리 없이 구분선만 둡니다. */
+  embedded?: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
@@ -61,9 +64,9 @@ export default function AttachmentPicker({
   }
 
   return (
-    <section className="card p-5 sm:p-7">
+    <section className={embedded ? "mt-5 border-t border-line pt-5" : "card p-5 sm:p-7"}>
       <div className="flex items-baseline justify-between gap-3">
-        <h2 className="text-[15px] font-bold">
+        <h2 className={embedded ? "text-sm font-bold" : "text-[15px] font-bold"}>
           {title}
           <span className="ml-1.5 text-xs font-normal text-muted">선택</span>
         </h2>
