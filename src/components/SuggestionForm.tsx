@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { Fragment, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   MAX_BODY,
@@ -116,56 +116,75 @@ export default function SuggestionForm({ departments }: { departments: Departmen
       {/* ── 주제 ───────────────────────────────────────────── */}
       <section className="card p-5 sm:p-7" ref={topicRef}>
         <h2 className="text-[15px] font-bold">어떤 제안인가요?</h2>
+        <p className="mt-1 text-pretty text-[13px] leading-relaxed text-muted">
+          주제를 고르시면 아래 작성 예시가 그에 맞게 바뀝니다.
+        </p>
         {/*
-          카드 다섯 장을 두 줄로 놓으면 마지막 한 장이 혼자 남고, 칸마다 테두리가
-          있어 무겁습니다. 한 덩어리 목록에 동그란 선택 표시를 두고, 고른 줄만
-          옅게 칠합니다.
+          한 덩어리 목록은 칸이 흐려 고르는 맛이 약하고, 두 줄 카드 격자는 무거웠습니다.
+          한 줄에 하나씩 둥근 선택지를 쌓고, 고른 것은 테두리·바탕·체크를 함께 바꿔
+          분명히 드러나게 합니다.
         */}
-        <div
-          role="radiogroup"
-          aria-label="제안 주제"
-          className="mt-4 divide-y divide-line overflow-hidden rounded-xl border border-line"
-        >
+        <div role="radiogroup" aria-label="제안 주제" className="mt-4 space-y-2">
           {SUGGESTION_TOPICS.map((option) => {
             const active = topic === option.value;
             return (
               <label
                 key={option.value}
-                className={`flex cursor-pointer items-center gap-3.5 px-4 py-3 transition ${
-                  active ? "bg-brandTint" : "bg-white hover:bg-gray-50"
+                className={`flex cursor-pointer items-center gap-3.5 rounded-xl border px-4 py-3.5 transition sm:px-5 ${
+                  active
+                    ? "border-brand bg-brandSoft shadow-[inset_0_0_0_1px_#1f4d8f]"
+                    : "border-line bg-white hover:border-brand/40 hover:bg-brandTint"
                 }`}
               >
                 <input
                   type="radio"
                   name="topic"
-                  className="sr-only"
+                  className="peer sr-only"
                   value={option.value}
                   checked={active}
                   onChange={() => setTopic(option.value)}
                 />
-                <span
-                  aria-hidden
-                  className={`flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border-[1.5px] transition ${
-                    active ? "border-brand" : "border-gray-300"
-                  }`}
-                >
+                <span className="min-w-0 flex-1">
                   <span
-                    className={`h-2 w-2 rounded-full bg-brand transition ${
-                      active ? "scale-100" : "scale-0"
-                    }`}
-                  />
-                </span>
-                <span className="min-w-0 flex-1 sm:flex sm:items-baseline sm:gap-3">
-                  <span
-                    className={`block shrink-0 text-[14px] font-semibold ${
-                      active ? "text-brand" : "text-ink"
-                    }`}
+                    className={`block text-[15px] font-bold ${active ? "text-brand" : "text-ink"}`}
                   >
                     {option.label}
                   </span>
-                  <span className="mt-0.5 block text-pretty text-[12.5px] text-muted sm:mt-0">
-                    {option.hint}
+                  {/* 좁은 화면에서 「줄일 수 / 있는 비용」처럼 구절 중간에서 끊기지 않도록
+                      쉼표 단위로만 줄을 바꿉니다. */}
+                  <span
+                    className={`mt-0.5 block text-[13px] leading-relaxed ${
+                      active ? "text-brand/75" : "text-ink/55"
+                    }`}
+                  >
+                    {option.hint.split(", ").map((phrase, i, all) => (
+                      <Fragment key={phrase}>
+                        <span className="inline-block">
+                          {phrase}
+                          {i < all.length - 1 && ","}
+                        </span>
+                        {i < all.length - 1 && " "}
+                      </Fragment>
+                    ))}
                   </span>
+                </span>
+                <span
+                  aria-hidden
+                  className={`flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full border-[1.5px] transition peer-focus-visible:ring-2 peer-focus-visible:ring-brand/40 ${
+                    active ? "border-brand bg-brand" : "border-gray-300 bg-white"
+                  }`}
+                >
+                  <svg
+                    viewBox="0 0 16 16"
+                    className={`h-3 w-3 text-white transition ${active ? "opacity-100" : "opacity-0"}`}
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.4"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M3.5 8.5l3 3 6-7" />
+                  </svg>
                 </span>
               </label>
             );

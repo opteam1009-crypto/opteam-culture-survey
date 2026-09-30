@@ -1,3 +1,4 @@
+import { Fragment, type ReactNode } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { readSession } from "@/lib/auth";
@@ -38,8 +39,8 @@ interface ChannelSummary {
   href: string;
   total: number;
   stages: { stage: Stage; label: string; count: number }[];
-  /** 끝난 건의 세부(업무·제도 개선의 채택/미채택/전달) */
-  outcome?: string;
+  /** 카드 맨 아래 한 줄. 세 카드 모두 두어 높이와 줄이 맞도록 합니다. */
+  footer: string;
 }
 
 interface ActionItem {
@@ -75,16 +76,26 @@ export default async function SummaryPage() {
   const month = currentPeriod();
 
   // ── 창구별 세 단계 ─────────────────────────────────────────────────
+  const openHarassment = harassment.filter((r) => r.status !== "done");
+  const openGrievance = grievance.filter((r) => r.status !== "done");
+  const oldestOpen = openHarassment.length
+    ? Math.max(...openHarassment.map((r) => daysSince(r.submitted_at)))
+    : null;
+  const nearestLeft = openGrievance.length
+    ? Math.min(...openGrievance.map((r) => GRIEVANCE_DEADLINE_DAYS - daysSince(r.submitted_at)))
+    : null;
   const count = <T,>(rows: T[], pick: (r: T) => boolean) => rows.filter(pick).length;
   const reportChannel = (
     rows: ConfidentialReport[],
     key: string,
     title: string,
     href: string,
+    footer: string,
   ): ChannelSummary => ({
     key,
     title,
     href,
+    footer,
     total: rows.length,
     stages: [
       { stage: "new", label: "접수", count: count(rows, (r) => r.status === "received") },
@@ -104,12 +115,30 @@ export default async function SummaryPage() {
         { stage: "doing", label: "검토중", count: count(suggestions, (s) => s.status === "reviewing") },
         { stage: "done", label: "회신 완료", count: count(suggestions, (s) => isClosed(s.status)) },
       ],
-      outcome: (["adopted", "rejected", "routed"] as const)
+      footer: `회신 내역 · ${(["adopted", "rejected", "routed"] as const)
         .map((st) => `${STATUS_LABEL[st]} ${count(suggestions, (s) => s.status === st)}`)
-        .join(" · "),
+        .join(" · ")}`,
     },
-    reportChannel(harassment, "harassment", "괴롭힘 신고", "/dashboard/harassment"),
-    reportChannel(grievance, "grievance", "노사 고충", "/dashboard/grievance"),
+    reportChannel(
+      harassment,
+      "harassment",
+      "괴롭힘 신고",
+      "/dashboard/harassment",
+      oldestOpen === null
+        ? "미처리 건이 없습니다"
+        : `가장 오래된 미처리 건 · ${oldestOpen === 0 ? "오늘 접수" : `접수 ${oldestOpen}일째`}`,
+    ),
+    reportChannel(
+      grievance,
+      "grievance",
+      "노사 고충",
+      "/dashboard/grievance",
+      nearestLeft === null
+        ? "미처리 건이 없습니다"
+        : `가장 가까운 통보 기한 · ${
+            nearestLeft < 0 ? `${-nearestLeft}일 초과` : nearestLeft === 0 ? "오늘까지" : `D-${nearestLeft}`
+          }`,
+    ),
   ];
 
   // ── 맨 위 숫자 ─────────────────────────────────────────────────────
@@ -138,7 +167,7 @@ export default async function SummaryPage() {
   // 고충·괴롭힘은 이 화면에 내용을 옮기지 않습니다. 여러 사람이 보는 첫 화면일 수 있어
   // 누가 언제 냈는지만 두고, 내용은 각 탭의 상세에서 봅니다.
   const actions: ActionItem[] = [];
-  for (const r of grievance.filter((x) => x.status !== "done")) {
+  for (const r of openGrievance) {
     const passed = daysSince(r.submitted_at);
     const left = GRIEVANCE_DEADLINE_DAYS - passed;
     actions.push({
@@ -155,7 +184,7 @@ export default async function SummaryPage() {
           : { text: left === 0 ? "오늘까지 통보" : `통보 기한 D-${left}`, tone: left <= 3 ? "near" : "plain" },
     });
   }
-  for (const r of harassment.filter((x) => x.status !== "done")) {
+  for (const r of openHarassment) {
     const passed = daysSince(r.submitted_at);
     actions.push({
       href: `/dashboard/harassment/${r.id}`,
@@ -197,28 +226,39 @@ export default async function SummaryPage() {
         </p>
       </header>
 
-      {/* ── 맨 위: 처리할 건(대표 숫자) + 보조 숫자 셋 ─────────────── */}
-      <section className="grid gap-3 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,2fr)]">
-        <div className="card flex flex-col justify-center p-5 sm:p-6">
-          <p className="text-sm font-semibold text-muted">처리할 건</p>
-          <p className="mt-1 text-[52px] font-bold leading-none text-ink">
-            {openTotal}
-            <span className="ml-1 text-lg font-semibold text-muted">건</span>
-          </p>
-          <p className="mt-2 text-[13px] text-muted">
-            이 중 아직 손대지 않은 접수 <b className="text-ink">{untouched}건</b>
-          </p>
-        </div>
-        <div className="grid grid-cols-3 gap-2 sm:gap-3">
-          <Stat
-            label="고충 통보 기한 임박"
-            value={deadlineRisk}
-            note={`남은 기한 3일 이내·초과 · 접수 후 ${GRIEVANCE_DEADLINE_DAYS}일 이내 통보`}
-            alert={deadlineRisk > 0}
-          />
-          <Stat label={`${formatPeriod(month)} 접수`} value={receivedThisMonth} note="세 창구 합계" />
-          <Stat label={`${formatPeriod(month)} 처리 완료`} value={closedThisMonth} note="회신·처리 완료 기준" />
-        </div>
+      {/*
+        ── 맨 위 숫자 셋 ──
+        아래 창구 카드와 같은 3칸 격자라 세로 선이 위아래로 맞습니다. 카드 안은
+        subgrid 로 「제목 / 숫자 / 설명」 세 줄을 옆 카드와 공유해, 한쪽 제목이나
+        설명이 두 줄이 되어도 숫자 줄이 어긋나지 않습니다.
+      */}
+      <section className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3">
+        <Stat
+          className="col-span-2 sm:col-span-1"
+          label="처리할 건"
+          value={openTotal}
+          note={[
+            <>
+              이 중 아직 손대지 않은 접수 <b className="text-ink">{untouched}건</b>
+            </>,
+          ]}
+        />
+        <Stat
+          label="고충 통보 기한 임박"
+          value={deadlineRisk}
+          note={["남은 기한 3일 이내", "기한 초과 포함"]}
+          alert={deadlineRisk > 0}
+        />
+        <Stat
+          label={`${formatPeriod(month)} 접수`}
+          value={receivedThisMonth}
+          note={[
+            "세 창구 합계",
+            <>
+              처리 완료 <b className="text-ink">{closedThisMonth}건</b>
+            </>,
+          ]}
+        />
       </section>
 
       {/* ── 창구별 진행 ───────────────────────────────────────────── */}
@@ -283,17 +323,20 @@ export default async function SummaryPage() {
   );
 }
 
-/** 창구 하나의 진행 막대. 세 단계를 한 줄 막대로, 범례에 이름과 건수를 둡니다. */
+/**
+ * 창구 하나의 진행 막대. 세 단계를 한 줄 막대로, 범례에 이름과 건수를 둡니다.
+ * 머리 / 막대 / 범례 / 맨 아래 줄을 옆 카드와 subgrid 로 맞춥니다.
+ */
 function ChannelCard({ c }: { c: ChannelSummary }) {
   const visible = c.stages.filter((s) => s.count > 0);
   return (
-    <div className="card flex flex-col p-5">
+    <div className="card row-span-4 grid grid-rows-subgrid gap-y-0 p-5">
       <div className="flex items-baseline justify-between gap-3">
         <Link href={c.href} className="text-[15px] font-bold text-ink hover:text-brand">
           {c.title} <span aria-hidden className="text-muted">›</span>
         </Link>
         <p className="text-sm text-muted">
-          전체 <b className="text-ink">{c.total}</b>건
+          전체 <b className="tabular-nums text-ink">{c.total}</b>건
         </p>
       </div>
 
@@ -331,7 +374,7 @@ function ChannelCard({ c }: { c: ChannelSummary }) {
               />
               <span className="truncate">{s.label}</span>
             </dt>
-            <dd className="mt-0.5 text-lg font-bold text-ink">
+            <dd className="mt-0.5 text-lg font-bold tabular-nums text-ink">
               {s.count}
               <span className="ml-0.5 text-xs font-semibold text-muted">건</span>
             </dd>
@@ -339,9 +382,7 @@ function ChannelCard({ c }: { c: ChannelSummary }) {
         ))}
       </dl>
 
-      {c.outcome && (
-        <p className="mt-3 border-t border-line pt-3 text-xs text-muted">회신 내역 · {c.outcome}</p>
-      )}
+      <p className="mt-3.5 self-end border-t border-line pt-3 text-xs text-muted">{c.footer}</p>
     </div>
   );
 }
@@ -351,20 +392,34 @@ function Stat({
   value,
   note,
   alert,
+  className = "",
 }: {
   label: string;
   value: number;
-  note?: string;
+  /** 설명 조각. 좁은 카드에서는 조각마다 줄을 바꿔 구절 중간에서 끊기지 않게 합니다. */
+  note: ReactNode[];
   alert?: boolean;
+  className?: string;
 }) {
   return (
-    <div className="card flex flex-col justify-center p-3 sm:p-4">
-      <p className="text-pretty text-[11px] font-semibold leading-snug text-muted sm:text-xs">{label}</p>
-      <p className={`mt-1 text-xl font-bold sm:text-2xl ${alert ? "text-[#93441f]" : "text-ink"}`}>
+    <div className={`card row-span-3 grid grid-rows-subgrid gap-y-0 p-4 sm:p-5 ${className}`}>
+      <p className="text-pretty text-[13px] font-semibold leading-snug text-muted">{label}</p>
+      <p
+        className={`mt-2.5 text-[34px] font-bold leading-none tabular-nums sm:text-[40px] ${
+          alert ? "text-[#93441f]" : "text-ink"
+        }`}
+      >
         {value}
-        <span className="ml-0.5 text-xs font-semibold sm:text-sm">건</span>
+        <span className="ml-1 text-base font-semibold text-muted">건</span>
       </p>
-      {note && <p className="mt-0.5 hidden text-[11px] leading-relaxed text-muted sm:block">{note}</p>}
+      <p className="mt-2.5 text-balance text-xs leading-relaxed text-muted">
+        {note.map((part, i) => (
+          <Fragment key={i}>
+            {i > 0 && <span className="hidden lg:inline"> · </span>}
+            <span className="block lg:inline">{part}</span>
+          </Fragment>
+        ))}
+      </p>
     </div>
   );
 }
