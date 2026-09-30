@@ -412,9 +412,10 @@ export default function HarassmentForm({
         안내 문구만 두면 무슨 뜻인지 와닿지 않아서, 위에서 적은 내용을 그대로 비춰 보여줍니다.
       */}
       <section className="card p-5 sm:p-7">
-        <p className="rounded-lg bg-brandSoft px-4 py-3 text-pretty text-[13px] leading-relaxed text-brand">
-          7~9항은 위 신고서 6·4·8항과 같은 질문이라 다시 적지 않으셔도 됩니다. 신고서에 적으신 내용이
-          아래에 자동으로 옮겨집니다.
+        <h2 className="text-[15px] font-bold">7~9항 · 신고서에 적은 내용 확인</h2>
+        <p className="mt-1 text-pretty text-[13px] leading-relaxed text-muted">
+          상세기술서 7~9항은 신고서 6·4·8항과 같은 질문이라 따로 적지 않습니다. 위에 적으신 내용을 여기서
+          확인만 하시면 됩니다.
         </p>
         <div className="mt-5 space-y-5">
           <Mirror no={7} title="피해 내용" from={6} fromTitle="피해 내용">
@@ -569,7 +570,7 @@ function Mirror({
           children ? "text-ink/80" : "text-muted"
         }`}
       >
-        {children || `신고서 ${from}항(${fromTitle})에 적으시면 여기에 자동으로 옮겨집니다.`}
+        {children || `아직 적은 내용이 없습니다. 신고서 ${from}항(${fromTitle})에 적으시면 여기에 표시됩니다.`}
       </p>
     </div>
   );
