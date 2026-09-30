@@ -3,6 +3,7 @@ import { formatDateTime } from "@/lib/period";
 import { loadReports } from "@/lib/queries";
 import {
   CONFIDENTIAL_CHANNELS,
+  DELETE_CONFIRM,
   GRIEVANCE_DEADLINE_DAYS,
   REPORT_STATUS_LABEL,
   reportTone,
@@ -10,6 +11,7 @@ import {
   type ConfidentialReport,
 } from "@/lib/confidential";
 import ReportDeadline, { daysSince } from "./ReportDeadline";
+import DeleteEntryButton from "./DeleteEntryButton";
 
 /** 탭마다 머리말과 맨 위 숫자가 다릅니다. 창구마다 챙겨야 할 것이 달라서입니다. */
 const HEAD: Record<ConfidentialKind, { title: string; desc: string }> = {
@@ -70,8 +72,18 @@ export default async function ReportsList({ kind }: { kind: ConfidentialKind }) 
       ) : (
         <ul className="space-y-2.5">
           {rows.map((r) => (
-            <li key={r.id}>
+            // 삭제 버튼은 카드(링크) 안이 아니라 옆에 겹쳐 둡니다. 링크 안에 버튼을 넣으면
+            // 누르는 순간 상세로 넘어가 버립니다.
+            <li key={r.id} className="relative">
               <ReportCard r={r} />
+              <DeleteEntryButton
+                className="absolute bottom-3 right-3 sm:bottom-4 sm:right-4"
+                endpoint="/api/admin/reports"
+                id={r.id}
+                question={DELETE_CONFIRM[r.kind].question}
+                detail={`${r.department_name} · ${r.reporter_name} · ${formatDateTime(r.submitted_at)} 접수`}
+                warning={DELETE_CONFIRM[r.kind].warning}
+              />
             </li>
           ))}
         </ul>
@@ -104,7 +116,7 @@ function ReportCard({ r }: { r: ConfidentialReport }) {
       <p className="mt-2 line-clamp-2 text-[14px] leading-relaxed text-ink">
         {(first && r.body?.[first.code]) || "—"}
       </p>
-      <p className="mt-2 text-xs text-muted">
+      <p className="mt-2 pr-14 text-xs text-muted">
         {r.department_name} · {r.reporter_name}
       </p>
     </Link>

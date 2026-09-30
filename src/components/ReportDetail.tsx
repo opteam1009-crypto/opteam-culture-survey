@@ -4,6 +4,7 @@ import { formatDateTime } from "@/lib/period";
 import { loadReport } from "@/lib/queries";
 import {
   CONFIDENTIAL_CHANNELS,
+  DELETE_CONFIRM,
   REPORT_STATUS_LABEL,
   reportTone,
   type ConfidentialKind,
@@ -11,6 +12,7 @@ import {
 import ReportDeadline from "./ReportDeadline";
 import ReportStatusControls from "./ReportStatusControls";
 import PrintButton from "./PrintButton";
+import DeleteEntryButton from "./DeleteEntryButton";
 
 const BACK: Record<ConfidentialKind, string> = {
   grievance: "노사 고충 목록",
@@ -92,6 +94,18 @@ export default async function ReportDetail({ id, kind }: { id: string; kind: Con
           <ReportStatusControls id={r.id} status={r.status} note={r.note} />
         </div>
       </section>
+
+      <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1.5 print:hidden">
+        <p className="text-xs text-muted">테스트로 넣은 접수는 삭제할 수 있습니다.</p>
+        <DeleteEntryButton
+          endpoint="/api/admin/reports"
+          id={r.id}
+          question={DELETE_CONFIRM[r.kind].question}
+          detail={`${r.department_name} · ${r.reporter_name} · ${formatDateTime(r.submitted_at)} 접수`}
+          warning={DELETE_CONFIRM[r.kind].warning}
+          after={`/dashboard/${r.kind}`}
+        />
+      </div>
     </div>
   );
 }

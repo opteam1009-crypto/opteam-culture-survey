@@ -11,6 +11,7 @@ import {
   isClosed,
   statusTone,
 } from "@/lib/suggestions";
+import DeleteEntryButton from "@/components/DeleteEntryButton";
 
 export const dynamic = "force-dynamic";
 
@@ -107,7 +108,8 @@ export default async function SuggestionsPage({
           {rows.map((row) => {
             const tone = statusTone(row.status);
             return (
-              <li key={row.id}>
+              // 삭제 버튼은 카드(링크) 옆에 겹쳐 둡니다. 링크 안에 두면 누르는 순간 상세로 넘어갑니다.
+              <li key={row.id} className="relative">
                 <Link
                   href={`/dashboard/suggestions/${row.id}`}
                   className="card block p-4 transition hover:border-brand/40 hover:bg-brandTint sm:p-5"
@@ -130,10 +132,17 @@ export default async function SuggestionsPage({
                   <p className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-muted">
                     {row.proposal}
                   </p>
-                  <p className="mt-2 text-xs text-muted">
+                  <p className="mt-2 pr-14 text-xs text-muted">
                     {row.department_name} · {row.proposer_name}
                   </p>
                 </Link>
+                <DeleteEntryButton
+                  className="absolute bottom-3 right-3 sm:bottom-4 sm:right-4"
+                  endpoint="/api/admin/suggestions"
+                  id={row.id}
+                  question="이 제안을 삭제할까요?"
+                  detail={`${row.department_name} · ${row.proposer_name}\n「${row.title}」`}
+                />
               </li>
             );
           })}

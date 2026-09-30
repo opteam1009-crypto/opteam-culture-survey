@@ -186,3 +186,20 @@ export interface ConfidentialReport {
 
 export const MAX_CONTACT = 80;
 export const MAX_FIELD = 3000;
+
+/**
+ * 삭제 확인창 문구. 삭제는 테스트 접수를 지우기 위한 것이라, 실제 접수는 지우지 말고
+ * 처리 완료로 닫도록 안내합니다. 고충은 접수·처리 대장을 1년간 보존해야 합니다
+ * (근로자참여법 시행령 제9조).
+ */
+export const DELETE_CONFIRM: Record<ConfidentialKind, { question: string; warning: string }> = {
+  grievance: {
+    question: "이 고충 접수를 삭제할까요?",
+    warning:
+      "실제 고충 접수는 삭제하지 말고 「처리 완료」로 닫아 주세요. 고충 접수·처리 대장은 1년간 보존해야 합니다(근로자참여법 시행령 제9조).",
+  },
+  harassment: {
+    question: "이 괴롭힘 신고를 삭제할까요?",
+    warning: "실제 신고는 처리 기록이 남도록 삭제하지 말고 「처리 완료」로 닫아 주세요.",
+  },
+};

@@ -67,3 +67,34 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "저장 중 오류가 발생했습니다." }, { status: 500 });
   }
 }
+
+/** 제안 1건 삭제. 테스트로 넣어본 접수를 지우기 위한 기능이며 되돌릴 수 없습니다. */
+export async function DELETE(request: Request) {
+  let session = null;
+  try {
+    session = await readSession();
+  } catch {
+    session = null;
+  }
+  if (!session) return NextResponse.json({ error: "권한이 없습니다." }, { status: 401 });
+
+  const body = (await request.json().catch(() => ({}))) as { id?: unknown };
+  const id = typeof body.id === "string" ? body.id : "";
+  if (!/^[0-9a-fA-F-]{36}$/.test(id)) {
+    return NextResponse.json({ error: "삭제할 제안을 찾을 수 없습니다." }, { status: 400 });
+  }
+
+  try {
+    await ensureSchema();
+    const removed = (await sql()`
+      delete from suggestions where id = ${id}::uuid returning id
+    `) as { id: string }[];
+    if (removed.length === 0) {
+      return NextResponse.json({ error: "이미 삭제된 제안입니다." }, { status: 404 });
+    }
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    console.error("[admin:suggestions:delete] failed", err instanceof Error ? err.message : err);
+    return NextResponse.json({ error: "삭제 중 오류가 발생했습니다." }, { status: 500 });
+  }
+}

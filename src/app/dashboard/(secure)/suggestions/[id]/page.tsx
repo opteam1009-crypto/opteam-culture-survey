@@ -12,6 +12,7 @@ import {
 } from "@/lib/suggestions";
 import SuggestionStatusControls from "@/components/SuggestionStatusControls";
 import PrintButton from "@/components/PrintButton";
+import DeleteEntryButton from "@/components/DeleteEntryButton";
 
 export const dynamic = "force-dynamic";
 
@@ -99,6 +100,17 @@ export default async function SuggestionDetailPage({ params }: { params: { id: s
           <SuggestionStatusControls id={item.id} status={item.status} reply={item.reply} />
         </div>
       </section>
+
+      <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1.5 print:hidden">
+        <p className="text-xs text-muted">테스트로 넣은 제안은 삭제할 수 있습니다.</p>
+        <DeleteEntryButton
+          endpoint="/api/admin/suggestions"
+          id={item.id}
+          question="이 제안을 삭제할까요?"
+          detail={`${item.department_name} · ${item.proposer_name}\n「${item.title}」`}
+          after="/dashboard/suggestions"
+        />
+      </div>
     </div>
   );
 }
